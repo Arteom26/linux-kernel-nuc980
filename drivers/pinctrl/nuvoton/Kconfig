@@ -45,3 +45,17 @@ config PINCTRL_NPCM8XX
 	  Say Y or M here to enable pin controller and GPIO support for
 	  the Nuvoton NPCM8XX SoC. This is strongly recommended when
 	  building a kernel that will run on this chip.
+
+config PINCTRL_NUC980
+	tristate "Pinctrl and GPIO driver for Nuvoton NUC980"
+	depends on (ARCH_NUC980 || COMPILE_TEST) && OF
+	select PINMUX
+	select PINCONF
+	select GENERIC_PINCONF
+	select GPIOLIB
+	select GPIO_GENERIC
+	select GPIOLIB_IRQCHIP
+	help
+	  Say Y or M here to enable pin controller and GPIO support for
+	  the Nuvoton NPCM8XX SoC. This is strongly recommended when
+	  building a kernel that will run on this chip.

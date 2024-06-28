@@ -290,6 +290,18 @@ choice
 		  If you have a Broadcom STB chip and would like early print
 		  messages to appear over the UART, select this option.
 
+	config DEBUG_NUC980_UART
+		bool "Use NUC980 UART for low-level debug"
+		depends on ARCH_NUC980
+		help
+		  Say Y here if you want the debug print routines to direct
+		  their output to the first serial port on these devices. The
+		  UART physical and virtual address is automatically provided
+		  based on the chip identification register value.
+
+		  If you have a Broadcom STB chip and would like early print
+		  messages to appear over the UART, select this option.
+
 	config DEBUG_CLPS711X_UART1
 		bool "Kernel low-level debugging messages via UART1"
 		depends on ARCH_CLPS711X
@@ -1529,6 +1541,7 @@ config DEBUG_LL_INCLUDE
 	default "debug/bcm63xx.S" if DEBUG_BCM63XX_UART
 	default "debug/digicolor.S" if DEBUG_DIGICOLOR_UA0
 	default "debug/brcmstb.S" if DEBUG_BRCMSTB_UART
+	default "debug/nuc980.S" if DEBUG_NUC980_UART
 	default "mach/debug-macro.S"
 
 # Compatibility options for PL01x

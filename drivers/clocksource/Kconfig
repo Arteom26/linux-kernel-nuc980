@@ -180,6 +180,15 @@ config NPCM7XX_TIMER
 	  Enable 24-bit TIMER0 and TIMER1 counters in the NPCM7xx architecture,
 	  where TIMER0 serves as clockevent and TIMER1 serves as clocksource.
 
+config NUC980_TIMER
+	bool "NUC980 timer driver"
+	depends on HAS_IOMEM
+	select TIMER_OF
+	select CLKSRC_MMIO
+	help
+	  Enable 32-bit TIMER4 and TIMER5 counters in the NUC980 architecture,
+	  where TIMER4 serves as clockevent and TIMER5 serves as clocksource.
+
 config CADENCE_TTC_TIMER
 	bool "Cadence TTC timer driver" if COMPILE_TEST
 	depends on COMMON_CLK
