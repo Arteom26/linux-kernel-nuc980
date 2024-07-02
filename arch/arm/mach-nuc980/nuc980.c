@@ -73,9 +73,6 @@ static struct map_desc nuc980_iodesc[] __initdata = {
 	IODESC_ENT(CAN3),
 	IODESC_ENT(SRAM),
 };
-
-extern void nuc980_timer_init(void);
-extern int __init nuc980_of_init_irq(struct device_node *node, struct device_node *parent);
 extern void nuc980_restart(enum reboot_mode mode, const char *cmd);
 
 static void __init nuc980_map_io(void)
@@ -86,19 +83,6 @@ static void __init nuc980_map_io(void)
 static void __init nuc980_init_late(void)
 {
 	nuc980_init_suspend();
-}
-
-static const struct of_device_id irq_of_match[] __initconst = {
-	{
-		.compatible = "nuvoton,nuc980-aic",
-		.data = nuc980_of_init_irq
-	},
-	{ /*sentinel */ }
-};
-
-static void __init nuc980_dt_init_irq(void)
-{
-	of_irq_init(irq_of_match);
 }
 
 static void __init nuc980_dt_device_init(void)
@@ -117,7 +101,6 @@ static const char *const nuc980_dt_board_compat[] = {
 DT_MACHINE_START(NUC980_DT, "Nuvoton NUC980 Board")
 	.atag_offset	= 0x100,
 	// .map_io			= nuc980_map_io,
-	// .init_irq		= nuc980_dt_init_irq,
 	.init_machine 	= nuc980_dt_device_init,
 	.dt_compat		= nuc980_dt_board_compat,
 	// .init_late		= nuc980_init_late,

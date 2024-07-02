@@ -197,7 +197,7 @@
         etimer1: etimer1@b0050100 {
             status = "disabled";
         };
-
+        
         etimer2: etimer2@b0051000 {
             status = "disabled";
         };
@@ -206,9 +206,8 @@
             status = "disabled";
         };
 
-        etimer4: etimer4@b0052000 {// This will setup timer 4 & 5 to be used for clock source and clock events
+        etimer4: etimer4@b0052000 {
             compatible = "nuvoton,nuc980-timer";
-            reg = <0xb0052000 0x200>;
             status = "okay";
             /delete-property/pinctrl-names;
             /delete-property/pinctrl-0;
@@ -216,7 +215,7 @@
 
         etimer5: etimer5@b0052100 {
             compatible = "nuvoton,nuc980-timer";
-            status = "disabled";
+            status = "okay";
             /delete-property/pinctrl-names;
             /delete-property/pinctrl-0;
         };
