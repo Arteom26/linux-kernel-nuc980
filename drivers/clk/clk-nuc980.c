@@ -64,6 +64,9 @@
 #define NUC980_CLK_S_UART_CLK(uart_num)		"uart" #uart_num "_clk"
 #define NUC980_CLK_S_TIM_MUX(tim_num)    	"tim" #tim_num "_clk_mux"
 #define NUC980_CLK_S_TIM_CLK(tim_num)    	"tim" #tim_num "_clk"
+#define NUC980_CLK_S_SDH_MUX		"sdh_clk_mux"
+#define NUC980_CLK_S_SDH_DIV		"sdh_clk_div"
+#define NUC980_CLK_S_SDH_CLK		"sdh_clk"
 
 struct nuc980_clk_pll_data {
 	u32 reg;
@@ -279,6 +282,7 @@ static const struct nuc980_clk_div_data nuc980_divs[] __initconst = {
 	{ CLK_DIVCTL5, 29, 3, NUC980_CLK_S_UART_DIV(7), NUC980_CLK_S_UART_MUX(7), 0, 0, -1 },
 	{ CLK_DIVCTL6, 5, 3, NUC980_CLK_S_UART_DIV(8), NUC980_CLK_S_UART_MUX(8), 0, 0, -1 },
 	{ CLK_DIVCTL6, 13, 3, NUC980_CLK_S_UART_DIV(9), NUC980_CLK_S_UART_MUX(9), 0, 0, -1 },
+	{ CLK_DIVCTL9, 8, 8, NUC980_CLK_S_SDH_DIV, NUC980_CLK_S_SDH_MUX, 0, 0, -1 },
 };
 
 static u32 sysclk_mux_table[] = {0, 2, 3};
@@ -288,6 +292,8 @@ static const char * const uart_mux_parents[] __initconst = { NUC980_CLK_S_XIN, N
 static u32 timer_mux_table[] = {0, 1, 2, 3};
 static const char * const timer01_45_mux_parents[] __initconst = { NUC980_CLK_S_XIN, NUC980_CLK_S_PCLK0, NUC980_CLK_S_PCLK_DIV4096, NUC980_CLK_S_XIN32K };
 static const char * const timer23_mux_parents[] __initconst = { NUC980_CLK_S_XIN, NUC980_CLK_S_PCLK1, NUC980_CLK_S_PCLK_DIV4096, NUC980_CLK_S_XIN32K };
+static const char * const sdh_mux_parents[] __initconst = { NUC980_CLK_S_XIN, NUC980_CLK_S_APLL, NUC980_CLK_S_UPLL };
+static u32 sdh_mux_table[] = {0, 2, 3};
 static const struct nuc980_clk_mux_data nuc980_muxes[] __initconst = {
 	{ CLK_DIVCTL0, 3, 2, sysclk_mux_table, NUC980_CLK_S_SYSMUX, sysclk_mux_parents, ARRAY_SIZE(sysclk_mux_parents), 0, -1 },
 	{ CLK_DIVCTL4, 3, 2, uart_mux_table, NUC980_CLK_S_UART_MUX(0), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
@@ -306,6 +312,7 @@ static const struct nuc980_clk_mux_data nuc980_muxes[] __initconst = {
 	{ CLK_DIVCTL8, 22, 2, timer_mux_table, NUC980_CLK_S_TIM_MUX(3), timer23_mux_parents, ARRAY_SIZE(timer23_mux_parents), 0, -1 },
 	{ CLK_DIVCTL8, 24, 2, timer_mux_table, NUC980_CLK_S_TIM_MUX(4), timer01_45_mux_parents, ARRAY_SIZE(timer01_45_mux_parents), 0, -1 },
 	{ CLK_DIVCTL8, 26, 2, timer_mux_table, NUC980_CLK_S_TIM_MUX(5), timer01_45_mux_parents, ARRAY_SIZE(timer01_45_mux_parents), 0, -1 },
+	{ CLK_DIVCTL9, 3, 2, sdh_mux_table, NUC980_CLK_S_SDH_MUX, sdh_mux_parents, ARRAY_SIZE(sdh_mux_parents), 0, -1 },
 };
 
 // TODO: For every periphal have to seperate clock setups - clock type selection & enable
@@ -335,13 +342,13 @@ static const struct nuc980_clk_gate_data nuc980_gates[] __initconst = {
 	{ CLK_PCLKEN0, 11, NUC980_CLK_S_TIM_CLK(3), NUC980_CLK_S_TIM_MUX(3), 0, 0, NUC980_CLK_TIM3 },
 	{ CLK_PCLKEN0, 12, NUC980_CLK_S_TIM_CLK(4), NUC980_CLK_S_TIM_MUX(4), 0, 0, NUC980_CLK_TIM4 },
 	{ CLK_PCLKEN0, 13, NUC980_CLK_S_TIM_CLK(5), NUC980_CLK_S_TIM_MUX(5), 0, 0, NUC980_CLK_TIM5 },
+	{ CLK_HCLKEN, 30, NUC980_CLK_S_SDH_CLK, NUC980_CLK_S_SDH_DIV, 0, 0, NUC980_CLK_SDH },
 };
 
 static DEFINE_SPINLOCK(nuc980_clk_lock);
 
 static void __init nuc980_clk_init(struct device_node *clk_np)
 {
-    printk("Initializing nuc980_clk......\n");
     struct clk_hw_onecell_data *nuc980_clk_data;
     void __iomem *clk_base;
     struct resource res;

@@ -103,6 +103,7 @@ cqhci-y					+= cqhci-core.o
 cqhci-$(CONFIG_MMC_CRYPTO)		+= cqhci-crypto.o
 obj-$(CONFIG_MMC_HSQ)			+= mmc_hsq.o
 obj-$(CONFIG_MMC_LITEX)			+= litex_mmc.o
+obj-$(CONFIG_MMC_NUC980_SDH)		+= nuc980_sdh.o
 
 ifeq ($(CONFIG_CB710_DEBUG),y)
 	CFLAGS-cb710-mmc	+= -DDEBUG

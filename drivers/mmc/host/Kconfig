@@ -1088,3 +1088,7 @@ config MMC_LITEX
 	  module will be called litex_mmc.
 
 	  If unsure, say N.
+
+config MMC_NUC980_SDH
+	tristate "Nuvoton NUC980 SD Card support"
+	depends on ARCH_NUC980

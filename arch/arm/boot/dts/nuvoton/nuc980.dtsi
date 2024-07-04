@@ -1836,6 +1836,7 @@
             interrupts = <27 4 1>;
             pinctrl-names = "default";
             pinctrl-0 = <&pinctrl_sdh>;
+            clocks = <&clk NUC980_CLK_SDH>;
             status = "disabled";
         };
 
