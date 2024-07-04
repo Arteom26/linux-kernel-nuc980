@@ -634,7 +634,7 @@ static void nuc980_sd_completed_command(struct nuc980_sd_host *host, unsigned in
 			cmd->resp[1] = cmd->resp[2] = cmd->resp[3] = 0;
 		} else if (status & SD_EVENT_RSP2_IN) {
 			// if R2
-			ptr = (unsigned char *)FB0_BASE_ADDR;
+			ptr = (unsigned char *)(host->sd_base + FB0_BASE_ADDR);
 			for (i=0, j=0; j<5; i+=4, j++)
 				tmp[j] = (*(ptr+i)<<24)|(*(ptr+i+1)<<16)|(*(ptr+i+2)<<8)|(*(ptr+i+3));
 			for (i=0; i<4; i++)
@@ -1083,6 +1083,7 @@ static int nuc980_sd_probe(struct platform_device *pdev)
 	nuc980_sd_debug("Added NUC980 SD0 driver\n");
 
 	LEAVE();
+	printk("DONE PROBING...\n");
 	return 0;
 
 fail0:

@@ -182,7 +182,7 @@ static void nuc980_clockevent_resume(struct clock_event_device *clk)
 #endif
 
 /*IRQ handler for the timer*/
-static irqreturn_t nuc980_timer4_interrupt(int irq, void *dev_id)
+static irqreturn_t nuc980_timer_interrupt(int irq, void *dev_id)
 {
 	struct clock_event_device *evt = (struct clock_event_device *)dev_id;
 	struct timer_of *to = to_timer_of(evt);
@@ -211,7 +211,7 @@ static struct timer_of nuc980_to = {
         .rating = 300,
     },
     .of_irq = {
-        .handler = nuc980_timer4_interrupt,
+        .handler = nuc980_timer_interrupt,
         .flags = IRQF_TIMER | IRQF_IRQPOLL
     }
 };
@@ -303,8 +303,7 @@ static int __init nuc980_timer_init(struct device_node *np)
 	{
 		nuc980_clocksource_init(np);
 
-		pr_info("Enabling NUC980 clocksource timer base: %px, IRQ: %d ",
-			timer_of_base(&nuc980_to), timer_of_irq(&nuc980_to));
+		pr_info("Enabling NUC980 clocksource timer base: %px", base_clocksourse_regs);
 	}
 
 	init_count++;

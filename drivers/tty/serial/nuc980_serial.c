@@ -804,12 +804,6 @@ static int nuc980serial_startup(struct uart_port *port)
 	dma_cap_set(DMA_SLAVE, mask);
 	dma_cap_set(DMA_PRIVATE, mask);
 
-	retval = clk_prepare_enable(up->uart_clk);
-	if (retval) {
-		dev_err(up->port.dev, "could not enable clk\n");
-		return retval;
-	}
-
 	if(up->uart_pdma_enable_flag == 1) {
 		pdma_rx->chan_rx = dma_request_channel(mask, NULL, NULL);
 		if (!pdma_rx->chan_rx) {
@@ -1166,6 +1160,12 @@ static int nuc980serial_probe(struct platform_device *pdev)
 	up->uart_clk = devm_clk_get(&pdev->dev, NULL);
 	if (IS_ERR(up->uart_clk))
 		return dev_err_probe(&pdev->dev, PTR_ERR(up->uart_clk), "Couldn't get the clock");
+
+	ret = clk_prepare_enable(up->uart_clk);
+	if (ret) {
+		dev_err(up->port.dev, "could not enable clk\n");
+		return ret;
+	}
 
 	spin_lock_init(&up->port.lock);
 	up->port.iobase         = (unsigned long)up->port.membase;
