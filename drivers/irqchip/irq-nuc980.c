@@ -24,6 +24,7 @@
 #include <linux/device.h>
 #include <linux/io.h>
 #include <linux/of_address.h>
+#include <asm/exception.h>
 
 #include <asm/irq.h>
 #include <linux/of.h>
@@ -168,10 +169,10 @@ static void __iomem *reg_base;
 
 static void nuc980_irq_mask(struct irq_data *d)
 {
-	if (d->irq < 32)
-		__raw_writel(1 << (d->irq), reg_base + REG_AIC_INTDIS0);
+	if (d->hwirq < 32)
+		__raw_writel(1 << (d->hwirq), reg_base + REG_AIC_INTDIS0);
 	else
-		__raw_writel(1 << (d->irq - 32), reg_base + REG_AIC_INTDIS1);
+		__raw_writel(1 << (d->hwirq - 32), reg_base + REG_AIC_INTDIS1);
 }
 
 static void nuc980_irq_ack(struct irq_data *d)
@@ -181,10 +182,10 @@ static void nuc980_irq_ack(struct irq_data *d)
 
 static void nuc980_irq_unmask(struct irq_data *d)
 {
-	if (d->irq < 32)
-		__raw_writel(1 << (d->irq), reg_base + REG_AIC_INTEN0);
+	if (d->hwirq < 32)
+		__raw_writel(1 << (d->hwirq), reg_base + REG_AIC_INTEN0);
 	else
-		__raw_writel(1 << (d->irq - 32), reg_base + REG_AIC_INTEN1);
+		__raw_writel(1 << (d->hwirq - 32), reg_base + REG_AIC_INTEN1);
 }
 
 static int nuc980_irq_set_wake(struct irq_data *d, unsigned int on)
@@ -793,6 +794,13 @@ static struct irq_domain_ops nuc980_aic_irq_ops = {
 	.xlate = nuc980_aic_irq_domain_xlate,
 };
 
+static asmlinkage void __exception_irq_entry aic_handle(struct pt_regs *regs)
+{
+	u32 irqnr = __raw_readl(reg_base + REG_AIC_IRQNUM);
+
+	generic_handle_domain_irq(nuc980_aic_domain, irqnr);
+}
+
 static int __init nuc980_of_init_irq(struct device_node *node, struct device_node *parent)
 {
     struct resource res;
@@ -818,6 +826,7 @@ static int __init nuc980_of_init_irq(struct device_node *node, struct device_nod
 
 	__raw_writel(0xFFFFFFFC, reg_base + REG_AIC_INTDIS0);
 	__raw_writel(0xFFFFFFFF, reg_base + REG_AIC_INTDIS1);
+	set_handle_irq(aic_handle);
 
 	return 0;
 }
