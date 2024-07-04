@@ -1083,7 +1083,6 @@ static int nuc980_sd_probe(struct platform_device *pdev)
 	nuc980_sd_debug("Added NUC980 SD0 driver\n");
 
 	LEAVE();
-	printk("DONE PROBING...\n");
 	return 0;
 
 fail0:
