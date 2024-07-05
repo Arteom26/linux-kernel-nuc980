@@ -40,13 +40,8 @@
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/serial.h>
+#include <linux/of_address.h>\
 
-// #include <mach/map.h>
-// #include <mach/regs-serial.h>
-// #include <mach/regs-gcr.h>
-// #include <mach/mfp.h>
-// #include <mach/regs-pdma.h>
-// #include <mach/sram.h>
 #include <linux/platform_data/dma-nuc980.h>
 #include <linux/pinctrl/consumer.h>
 
@@ -109,6 +104,9 @@ struct uart_nuc980_port {
 	*/
 	void    (*pm)(struct uart_port *port, unsigned int state, unsigned int old);
 };
+
+static struct device_node* nuc980serial_uart_nodes[UART_NR];
+static struct uart_nuc980_port nuc980serial_ports[UART_NR];
 
 static inline void __stop_tx(struct uart_nuc980_port *p);
 
@@ -1107,13 +1105,166 @@ static struct uart_ops nuc980serial_ops = {
 	.ioctl       = nuc980serial_ioctl,
 };
 
-#define NUC980SERIAL_CONSOLE NULL // TODO: Remove?
+static void nuc980serial_init_ports(void)
+{
+	static int first = 1;
+	int i, ret;
+
+	// UART0 multi-function  PF11,PF12
+	if (!first)
+		return;
+	first = 0;
+
+	for (i = 0; i < UART_NR; i++) {
+		struct uart_nuc980_port *up = &nuc980serial_ports[i];
+		struct device_node *np = nuc980serial_uart_nodes[i];
+
+		// enable clock
+		up->uart_clk = of_clk_get(np, 0);
+		if (IS_ERR(up->uart_clk))
+			pr_err("Couldn't get uart clock");
+
+		ret = clk_prepare_enable(up->uart_clk);
+		if (ret) {
+			pr_err("could not enable clk\n");
+		}
+
+		struct resource res;
+		if (of_address_to_resource(np, 0, &res)){
+			pr_err("Failed to get memory resource\n");
+		}
+		up->port.membase = ioremap(res.start, resource_size(&res));
+		up->port.iobase = (unsigned int)up->port.membase;
+		if (IS_ERR(up->port.membase))
+			pr_err("Unable to ioremap uart port #%d\n", i);
+
+		up->port.line = i;
+		spin_lock_init(&up->port.lock);
+
+		up->port.ops = &nuc980serial_ops;
+		up->port.uartclk = 12000000;
+		/* 12MHz reference clock input, 115200 */
+		serial_out(up, UART_REG_BAUD, 0x30000066);
+	}
+}
+
+#ifdef CONFIG_SERIAL_NUC980_CONSOLE
+static void nuc980serial_console_putchar(struct uart_port *port, unsigned char ch)
+{
+	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
+
+	while(!(serial_in(up, UART_REG_FSR) & TX_EMPTY));
+	serial_out(up, UART_REG_THR, ch);
+}
+
+/*
+ *  Print a string to the serial port trying not to disturb
+ *  any possible real use of the port...
+ *
+ *  The console_lock must be held when we get here.
+ */
+static void nuc980serial_console_write(struct console *co, const char *s, unsigned int count)
+{
+	struct uart_nuc980_port *up = &nuc980serial_ports[co->index];
+	BUG_ON(up == NULL);
+	unsigned long flags;
+	unsigned int ier;
+
+	local_irq_save(flags);
+
+	/*
+	 *  First save the IER then disable the interrupts
+	 */
+	ier = serial_in(up, UART_REG_IER);
+	serial_out(up, UART_REG_IER, 0);
+
+	uart_console_write(&up->port, s, count, nuc980serial_console_putchar);
+
+	/*
+	 *  Finally, wait for transmitter to become empty
+	 *  and restore the IER
+	 */
+	while(!(serial_in(up, UART_REG_FSR) & TX_EMPTY));
+	serial_out(up, UART_REG_IER, ier);
+
+	local_irq_restore(flags);
+}
+
+static int __init nuc980serial_console_setup(struct console *co, char *options)
+{
+	struct uart_port *port;
+	int baud = 115200;
+	int bits = 8;
+	int parity = 'n';
+	int flow = 'n';
+
+	/*
+	 * Check whether an invalid uart number has been specified, and
+	 * if so, search for the first available port that does have
+	 * console support.
+	 */
+	if (co->index >= UART_NR)
+		co->index = 0;
+	port = &nuc980serial_ports[co->index].port;
+
+	if (!port->iobase && !port->membase)
+		return -ENODEV;
+
+	if (options)
+		uart_parse_options(options, &baud, &parity, &bits, &flow);
+
+	return uart_set_options(port, co, baud, parity, bits, flow);
+}
+
+
+static struct console nuc980serial_console = {
+	.name    = "ttyS",
+	.write   = nuc980serial_console_write,
+	.device  = uart_console_device,
+	.setup   = nuc980serial_console_setup,
+	.flags   = CON_PRINTBUFFER,
+	.index   = -1,
+	.data    = &nuc980serial_reg,
+};
+
+static const struct of_device_id nuc980_serial_of_match[] = {
+	{ .compatible = "nuvoton,nuc980-uart" },
+	{},
+};
+MODULE_DEVICE_TABLE(of, nuc980_serial_of_match);
+
+static int __init nuc980serial_console_init(void)
+{
+	u32 i = 0;
+	struct device_node *np;
+
+	for_each_matching_node(np, nuc980_serial_of_match) {
+		if (nuc980serial_uart_nodes[i] == NULL) {
+			of_node_get(np);
+			nuc980serial_uart_nodes[i] = np;
+			i++;
+			if (i == UART_NR)
+				break;
+		}
+	}
+	nuc980serial_init_ports();
+	register_console(&nuc980serial_console);
+
+	return 0;
+}
+console_initcall(nuc980serial_console_init);
+
+#define NUC980SERIAL_CONSOLE    &nuc980serial_console
+#else
+#define NUC980SERIAL_CONSOLE    NULL
+#endif
+
 static struct uart_driver nuc980serial_reg = {
 	.owner        = THIS_MODULE,
 	.driver_name  = "serial",
 	.dev_name     = "ttyS",
 	.major        = TTY_MAJOR,
-	.minor        = 64,
+	.minor        = 64,\
 	.cons         = NUC980SERIAL_CONSOLE,
 	.nr           = UART_NR,
 };
@@ -1126,14 +1277,7 @@ static struct uart_driver nuc980serial_reg = {
 static int nuc980serial_probe(struct platform_device *pdev)
 {
 	struct uart_nuc980_port *up;
-	struct resource *resource;
 	int ret, i;
-
-	up = devm_kzalloc(&pdev->dev, sizeof(*up), GFP_KERNEL);
-	if(!up) {
-		dev_err(&pdev->dev, "Failed to allocate memory for up\n");
-		return -ENOMEM;
-	}
 
 	u32   val32[2];
 	if (of_property_read_u32_array(pdev->dev.of_node, "port-number", val32, 1) != 0) {
@@ -1141,8 +1285,8 @@ static int nuc980serial_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 	i = val32[0];
-	up->port.line = i;
 
+	up = &nuc980serial_ports[i];
 	if (of_property_read_u32_array(pdev->dev.of_node, "pdma-enable", val32, 1) != 0) {
 		printk("%s - can not get map-addr!\n", __func__);
 		return -EINVAL;
@@ -1153,30 +1297,13 @@ static int nuc980serial_probe(struct platform_device *pdev)
 	/*--------------------------------------------------------------*/
 	/*  get UART register map address from DTB                      */
 	/*--------------------------------------------------------------*/
-	up->port.membase = devm_platform_get_and_ioremap_resource(pdev, 0, &resource);
-	if (IS_ERR(up->port.membase))
-		return PTR_ERR(up->port.membase);
-
-	up->uart_clk = devm_clk_get(&pdev->dev, NULL);
-	if (IS_ERR(up->uart_clk))
-		return dev_err_probe(&pdev->dev, PTR_ERR(up->uart_clk), "Couldn't get the clock");
-
-	ret = clk_prepare_enable(up->uart_clk);
-	if (ret) {
-		dev_err(up->port.dev, "could not enable clk\n");
-		return ret;
-	}
-
-	spin_lock_init(&up->port.lock);
-	up->port.iobase         = (unsigned long)up->port.membase;
+	nuc980serial_init_ports();
 	up->port.irq            = platform_get_irq(pdev, 0);
 	up->port.dev            = &pdev->dev;
 	up->port.flags          = UPF_BOOT_AUTOCONF;
 
 	up->max_count = 0x0;
 	up->port.rs485_config = nuc980serial_config_rs485;
-	up->port.ops = &nuc980serial_ops;
-	serial_out(up, UART_REG_BAUD, 0x30000066); /* 12MHz reference clock input, 115200 */
 
 	platform_set_drvdata(pdev, up);
 	ret = uart_add_one_port(&nuc980serial_reg, &up->port);
@@ -1282,12 +1409,6 @@ static int nuc980serial_resume(struct platform_device *dev)
 
 	return 0;
 }
-
-static const struct of_device_id nuc980_serial_of_match[] = {
-	{ .compatible = "nuvoton,nuc980-uart" },
-	{},
-};
-MODULE_DEVICE_TABLE(of, nuc980_serial_of_match);
 
 static struct platform_driver nuc980serial_driver = {
 	.probe      = nuc980serial_probe,
