@@ -12,11 +12,6 @@
  * (at your option) any later version.
  *
  */
-
-#if defined(CONFIG_SERIAL_NUC980_CONSOLE) && defined(CONFIG_MAGIC_SYSRQ)
-#define SUPPORT_SYSRQ
-#endif
-
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/ioport.h>
@@ -1203,8 +1198,10 @@ static int __init nuc980serial_console_setup(struct console *co, char *options)
 	 * if so, search for the first available port that does have
 	 * console support.
 	 */
-	if (co->index >= UART_NR)
+	if (co->index >= UART_NR) {
+		pr_warn("NUC980serial: Invalid serial index %d provided\n", co->index);
 		co->index = 0;
+	}
 	port = &nuc980serial_ports[co->index].port;
 
 	if (!port->iobase && !port->membase)
@@ -1264,7 +1261,7 @@ static struct uart_driver nuc980serial_reg = {
 	.driver_name  = "serial",
 	.dev_name     = "ttyS",
 	.major        = TTY_MAJOR,
-	.minor        = 64,\
+	.minor        = 64,
 	.cons         = NUC980SERIAL_CONSOLE,
 	.nr           = UART_NR,
 };
@@ -1307,7 +1304,7 @@ static int nuc980serial_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, up);
 	ret = uart_add_one_port(&nuc980serial_reg, &up->port);
-	return 0;
+	return ret;
 }
 
 /*
