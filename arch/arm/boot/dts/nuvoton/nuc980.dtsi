@@ -2044,6 +2044,9 @@
             compatible = "nuvoton,nuc980-dma";
             reg = <0xb0008000 0x2000>;
             interrupts = <25 4 1>, <26 4 1>;
+            interrupt-names = "pdma0_irq", "pdma1_irq";
+            clocks = <&clk NUC980_CLK_PDMA0>, <&clk NUC980_CLK_PDMA1>;
+            clock-names = "pdma0_clk", "pdma1_clk";
             status = "disabled";
         };
 

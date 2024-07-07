@@ -67,6 +67,8 @@
 #define NUC980_CLK_S_SDH_MUX		"sdh_clk_mux"
 #define NUC980_CLK_S_SDH_DIV		"sdh_clk_div"
 #define NUC980_CLK_S_SDH_CLK		"sdh_clk"
+#define NUC980_CLK_S_PDMA0_CLK		"pdma0_clk"
+#define NUC980_CLK_S_PDMA1_CLK		"pdma1_clk"
 
 struct nuc980_clk_pll_data {
 	u32 reg;
@@ -343,6 +345,8 @@ static const struct nuc980_clk_gate_data nuc980_gates[] __initconst = {
 	{ CLK_PCLKEN0, 12, NUC980_CLK_S_TIM_CLK(4), NUC980_CLK_S_TIM_MUX(4), 0, 0, NUC980_CLK_TIM4 },
 	{ CLK_PCLKEN0, 13, NUC980_CLK_S_TIM_CLK(5), NUC980_CLK_S_TIM_MUX(5), 0, 0, NUC980_CLK_TIM5 },
 	{ CLK_HCLKEN, 30, NUC980_CLK_S_SDH_CLK, NUC980_CLK_S_SDH_DIV, 0, 0, NUC980_CLK_SDH },
+	{ CLK_HCLKEN, 12, NUC980_CLK_S_PDMA0_CLK, NUC980_CLK_S_HCLK1, 0, 0, NUC980_CLK_PDMA0 },
+	{ CLK_HCLKEN, 13, NUC980_CLK_S_PDMA1_CLK, NUC980_CLK_S_HCLK1, 0, 0, NUC980_CLK_PDMA1 },
 };
 
 static DEFINE_SPINLOCK(nuc980_clk_lock);

@@ -31,6 +31,7 @@ obj-$(CONFIG_DW_AXI_DMAC) += dw-axi-dmac/
 obj-$(CONFIG_DW_DMAC_CORE) += dw/
 obj-$(CONFIG_DW_EDMA) += dw-edma/
 obj-$(CONFIG_EP93XX_DMA) += ep93xx_dma.o
+obj-$(CONFIG_NUC980_DMA) += nuc980_dma.o
 obj-$(CONFIG_FSL_DMA) += fsldma.o
 fsl-edma-objs := fsl-edma-main.o fsl-edma-common.o
 obj-$(CONFIG_FSL_EDMA) += fsl-edma.o
