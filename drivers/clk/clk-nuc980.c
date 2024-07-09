@@ -69,6 +69,10 @@
 #define NUC980_CLK_S_SDH_CLK		"sdh_clk"
 #define NUC980_CLK_S_PDMA0_CLK		"pdma0_clk"
 #define NUC980_CLK_S_PDMA1_CLK		"pdma1_clk"
+#define NUC980_CLK_S_EMAC0_DIV		"emac0_div"
+#define NUC980_CLK_S_EMAC0_CLK		"emac0_clk"
+#define NUC980_CLK_S_EMAC1_DIV		"emac1_div"
+#define NUC980_CLK_S_EMAC1_CLK		"emac1_clk"
 
 struct nuc980_clk_pll_data {
 	u32 reg;
@@ -285,6 +289,8 @@ static const struct nuc980_clk_div_data nuc980_divs[] __initconst = {
 	{ CLK_DIVCTL6, 5, 3, NUC980_CLK_S_UART_DIV(8), NUC980_CLK_S_UART_MUX(8), 0, 0, -1 },
 	{ CLK_DIVCTL6, 13, 3, NUC980_CLK_S_UART_DIV(9), NUC980_CLK_S_UART_MUX(9), 0, 0, -1 },
 	{ CLK_DIVCTL9, 8, 8, NUC980_CLK_S_SDH_DIV, NUC980_CLK_S_SDH_MUX, 0, 0, -1 },
+	{ CLK_DIVCTL8, 0, 8, NUC980_CLK_S_EMAC0_DIV, NUC980_CLK_S_HCLK4, 0, 0, -1 },
+	{ CLK_DIVCTL8, 0, 8, NUC980_CLK_S_EMAC1_DIV, NUC980_CLK_S_HCLK3, 0, 0, -1 },
 };
 
 static u32 sysclk_mux_table[] = {0, 2, 3};
@@ -347,6 +353,8 @@ static const struct nuc980_clk_gate_data nuc980_gates[] __initconst = {
 	{ CLK_HCLKEN, 30, NUC980_CLK_S_SDH_CLK, NUC980_CLK_S_SDH_DIV, 0, 0, NUC980_CLK_SDH },
 	{ CLK_HCLKEN, 12, NUC980_CLK_S_PDMA0_CLK, NUC980_CLK_S_HCLK1, 0, 0, NUC980_CLK_PDMA0 },
 	{ CLK_HCLKEN, 13, NUC980_CLK_S_PDMA1_CLK, NUC980_CLK_S_HCLK1, 0, 0, NUC980_CLK_PDMA1 },
+	{ CLK_HCLKEN, 16, NUC980_CLK_S_EMAC0_CLK, NUC980_CLK_S_EMAC0_DIV, 0, 0, NUC980_CLK_EMAC0 },
+	{ CLK_HCLKEN, 17, NUC980_CLK_S_EMAC1_CLK, NUC980_CLK_S_EMAC1_DIV, 0, 0, NUC980_CLK_EMAC1 },
 };
 
 static DEFINE_SPINLOCK(nuc980_clk_lock);
