@@ -705,6 +705,8 @@ config CRYPTO_DEV_BCM_SPU
 
 source "drivers/crypto/stm32/Kconfig"
 
+source "drivers/crypto/nuvoton/Kconfig"
+
 config CRYPTO_DEV_SAFEXCEL
 	tristate "Inside Secure's SafeXcel cryptographic engine driver"
 	depends on (OF || PCI || COMPILE_TEST) && HAS_IOMEM

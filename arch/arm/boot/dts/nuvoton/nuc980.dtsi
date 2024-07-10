@@ -1926,6 +1926,7 @@
         crypto@b001c000{
             compatible = "nuvoton,nuc980-crypto";
             reg = <0xb001c000 0x1000>;
+            clocks = <&clk NUC980_CLK_CRYPTO>;
             interrupts = <35 4 1>;
             status = "okay";
         };
