@@ -1938,6 +1938,7 @@
 
         crypto_prng {                                /* Important note! Must also enable crypto@b001c000 */
             compatible = "nuvoton,nuvoton-rng";
+            reg = <0xb001c000 0x1000>;
             status = "okay";
         };
 
@@ -1948,7 +1949,7 @@
             interrupts = <21 4 1>, <19 4 1>;
             pinctrl-names = "default";
             pinctrl-0 = <&pinctrl_emac0>;
-            port-number = <0>;
+            mac-address = [ 08 00 27 00 01 92 ];
             status = "okay";
         };
 
@@ -1959,7 +1960,7 @@
             interrupts = <22 4 1>, <20 4 1>;
             pinctrl-names = "default";
             pinctrl-0 = <&pinctrl_emac1>;
-            port-number = <1>;
+            mac-address = [ 08 00 27 00 01 93 ];
             status = "disabled";
         };
 

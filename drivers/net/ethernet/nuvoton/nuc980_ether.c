@@ -197,9 +197,6 @@ struct nuc980_txbd {
 	unsigned int next;
 };
 
-u8 nuc980_mac0[6] = { 0x08, 0x00, 0x27, 0x00, 0x01, 0x92 };
-u8 nuc980_mac1[6] = { 0x08, 0x00, 0x27, 0x00, 0x01, 0x93 };
-
 static struct sk_buff *rx_skb[RX_DESC_SIZE];
 static struct sk_buff *tx_skb[TX_DESC_SIZE];
 // backup desp starting addr if ts enabled 
@@ -586,60 +583,6 @@ static int nuc980_hwtstamp_ioctl(struct net_device *dev, struct ifreq *ifr)
 			    sizeof(struct hwtstamp_config)) ? -EFAULT : 0;
 }
 /*------------------End of ptp helper -----------------------*/
-
-static __init int setup_macaddr(char *str, u8 *dest_mac)
-{
-	u8 mac[6] = {0, 0, 0, 0, 0, 0};
-	char *c = str;
-	int i, j;
-
-	if (!str)
-		goto err;
-
-	for(i = 0; i < 6; i++) {
-		for(j = 0; j < 2; j++) {
-			mac[i] <<= 4;
-			if(isdigit(*c))
-				mac[i] += *c - '0';
-			else if(isxdigit(*c))
-				mac[i] += toupper(*c) - 'A' + 10;
-			else {
-				goto err;
-			}
-			c++;
-		}
-
-		if(i != 5)
-			if(*c != ':') {
-				goto err;
-			}
-
-		c++;
-	}
-
-	// all good
-	for(i = 0; i < 6; i++) {
-		dest_mac[i] = mac[i];
-
-	}
-	return 0;
-
-err:
-	return -EINVAL;
-}
-
-static inline __init int setup_macaddr0(char *str)
-{
-	return setup_macaddr(str, nuc980_mac0);
-}
-early_param("ethaddr0", setup_macaddr0);
-
-static inline __init int setup_macaddr1(char *str)
-{
-	return setup_macaddr(str, nuc980_mac1);
-}
-early_param("ethaddr1", setup_macaddr1);
-
 
 static void nuc980_opmode(struct net_device *netdev, void __iomem *base, int speed, int duplex)
 {
@@ -1321,8 +1264,7 @@ static int nuc980_ether_open(struct net_device *netdev)
 	struct platform_device *pdev = ether->pdev;
 
 	int err;
-
-        nuc980_reset_mac(netdev);
+	nuc980_reset_mac(netdev);
 
 	err = request_irq(ether->txirq, nuc980_tx_interrupt, 0x0, pdev->name, netdev);
 	if (err) {
@@ -1541,21 +1483,6 @@ static const struct net_device_ops nuc980_ether_netdev_ops = {
 	.ndo_change_mtu		= nuc980_change_mtu,
 };
 
-static void __init get_mac_address(struct net_device *netdev)
-{
-	struct nuc980_ether *ether = netdev_priv(netdev);
-	struct platform_device *pdev;
-
-	pdev = ether->pdev;
-
-	u8* mac_addr = (ether->port_number == 0) ? nuc980_mac0 : nuc980_mac1;
-	if (is_valid_ether_addr(mac_addr))
-		memcpy((void*)netdev->dev_addr, mac_addr, 0x06);
-	else
-		dev_err(&pdev->dev, "invalid mac address\n");
-}
-
-
 static int nuc980_mii_setup(struct net_device *netdev)
 {
 	struct nuc980_ether *ether = netdev_priv(netdev);
@@ -1664,13 +1591,6 @@ static int nuc980_ether_probe(struct platform_device *pdev)
 
 	ether = netdev_priv(netdev);
 
-	if (of_property_read_u32_array(pdev->dev.of_node, "port-number", &ether->port_number, 1) != 0) {
-		printk("%s - can not get port-number!\n", __func__);
-		error = -EINVAL;
-		goto err0;
-	}
-	printk("Using port number %d for emac driver...\n", ether->port_number);
-
 	ether->res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (ether->res == NULL) {
 		dev_err(&pdev->dev, "failed to get I/O memory\n");
@@ -1734,7 +1654,12 @@ static int nuc980_ether_probe(struct platform_device *pdev)
 	netdev->dma = 0x0;
 	netdev->watchdog_timeo = TX_TIMEOUT;
 
-	get_mac_address(netdev);
+	if (!is_valid_ether_addr(netdev->dev_addr))
+		of_get_ethdev_address(pdev->dev.of_node, netdev);
+	if (!is_valid_ether_addr(netdev->dev_addr)){
+		dev_warn(&pdev->dev, "using random mac address\n");
+		eth_hw_addr_random(netdev);
+	}
 
 	ether->cur_tx = 0x0;
 	ether->cur_rx = 0x0;
