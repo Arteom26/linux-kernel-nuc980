@@ -1021,7 +1021,6 @@ static int nuc980_ether_close(struct net_device *netdev)
 	free_irq(ether->txirq, netdev);
 	free_irq(ether->rxirq, netdev);
 
-	iounmap(ether->reg_base);
 	nuc980_free_desc(netdev);
     dev_info(&pdev->dev, "%s is closed\n", netdev->name);
 
@@ -1271,7 +1270,6 @@ static int nuc980_ether_open(struct net_device *netdev)
 		dev_err(&pdev->dev, "register irq tx failed\n");
 		goto err_txirq;
 	}
-
 	err = request_irq(ether->rxirq, nuc980_rx_interrupt, IRQF_NO_SUSPEND, pdev->name, netdev);
 	if (err) {
 		dev_err(&pdev->dev, "register irq rx failed\n");
@@ -1284,7 +1282,7 @@ static int nuc980_ether_open(struct net_device *netdev)
  	netif_start_queue(netdev);
         napi_enable(&ether->napi);
 
-        ETH_ENABLE_RX(ether->reg_base);
+	ETH_ENABLE_RX(ether->reg_base);
 
 	if (netdev->phydev) {
 		/* If have a PHY, start polling */
@@ -1754,6 +1752,7 @@ static int nuc980_ether_remove(struct platform_device *pdev)
 	kfree(ether->mii_bus->irq);
 	mdiobus_free(ether->mii_bus);
 
+	iounmap(ether->reg_base);
 	platform_set_drvdata(pdev, NULL);
 
 	free_netdev(netdev);
