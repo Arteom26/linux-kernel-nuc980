@@ -59,7 +59,8 @@
 
         aic: interrupt-controller@b0004000 {
             compatible = "nuvoton,nuc980-aic";
-            reg = <0xb0042000 0x1000>;
+            reg = <0xb0042000 0x1000>, <0xb0004000 0x1000>;
+            reg-names = "aic", "gpio";
             #interrupt-cells = <3>;
             interrupt-controller;
         };
@@ -1476,7 +1477,6 @@
             reg = <0xb0004000 0x1000>;
             interrupts = <57 4 1>;
             port-number = <0>;
-            map-addr = <0xf0004000>;
             pinctrl-names = "default";
             pinctrl-0 = <&pinctrl_gpio>;
             #gpio-cells = <2>;

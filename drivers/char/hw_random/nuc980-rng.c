@@ -353,6 +353,7 @@ static int nuvoton_rng_probe(struct platform_device *pdev)
 
 static int nuvoton_rng_remove(struct platform_device *pdev)
 {
+	iounmap(regs);
 	hwrng_unregister(&nuvoton_rng);
 	return 0;
 }
