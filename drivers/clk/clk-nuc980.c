@@ -74,6 +74,7 @@
 #define NUC980_CLK_S_EMAC1_DIV		"emac1_div"
 #define NUC980_CLK_S_EMAC1_CLK		"emac1_clk"
 #define NUC980_CLK_S_CRYPTO_CLK		"crypto_clk"
+#define NUC980_CLK_S_GPIO_CLK		"gpio_clk"
 
 struct nuc980_clk_pll_data {
 	u32 reg;
@@ -357,6 +358,7 @@ static const struct nuc980_clk_gate_data nuc980_gates[] __initconst = {
 	{ CLK_HCLKEN, 16, NUC980_CLK_S_EMAC0_CLK, NUC980_CLK_S_EMAC0_DIV, 0, 0, NUC980_CLK_EMAC0 },// Ethernet clock gates
 	{ CLK_HCLKEN, 17, NUC980_CLK_S_EMAC1_CLK, NUC980_CLK_S_EMAC1_DIV, 0, 0, NUC980_CLK_EMAC1 },
 	{ CLK_HCLKEN, 23, NUC980_CLK_S_CRYPTO_CLK, NUC980_CLK_S_HCLK3, 0, 0, NUC980_CLK_CRYPTO },// Cryto unit clock gate
+	{ CLK_HCLKEN, 11, NUC980_CLK_S_GPIO_CLK, NUC980_CLK_S_HCLK1, 0, 0, NUC980_CLK_GPIO },// GPIO clock gate
 };
 
 static DEFINE_SPINLOCK(nuc980_clk_lock);

@@ -16,6 +16,7 @@
 #include <dt-bindings/input/input.h>
 
 #include <dt-bindings/clock/nuvoton,nuc980-clock.h>
+#include <dt-bindings/interrupt-controller/irq.h>
 
 / {
     model = "Nuvoton NUC980 family SoC";
@@ -1474,7 +1475,9 @@
 
         gpio: gpio@b0004000 {
             compatible = "nuvoton,nuc980-gpio";
-            reg = <0xb0004000 0x1000>;
+            reg = <0xb0004000 0x1000>, <0xb0000000 0x1000>;
+            reg-names = "gpio", "pwr";
+            clocks = <&clk NUC980_CLK_GPIO>;
             interrupts = <57 4 1>;
             port-number = <0>;
             pinctrl-names = "default";
@@ -1488,22 +1491,22 @@
             /* 1st: 0(Disable)/1(Enable) */
             /* 2nd: 0(PA0)/1(PA13) */
             /* 3rd: 0(both)/1(rasing)/2(falling)/3(heigh level)/4(low level) */
-            eint0-config = <0 0 0>;
+            eint0-config = <0 0 IRQ_TYPE_EDGE_BOTH>;
 
             /* 1st: 0(Disable)/1(Enable) */
             /* 2nd: 0(PA1)/1(PA14) */
             /* 3rd: 0(both)/1(rasing)/2(falling)/3(heigh level)/4(low level) */
-            eint1-config = <0 0 0>;
+            eint1-config = <0 0 IRQ_TYPE_EDGE_BOTH>;
 
             /* 1st: 0(Disable)/1(Enable) */
             /* 2nd: 0(PD0)/1(PE10)/2(PB3)/3(PB13) */
             /* 3rd: 0(both)/1(rasing)/2(falling)/3(heigh level)/4(low level) */
-            eint2-config = <0 3 0>;
+            eint2-config = <0 3 IRQ_TYPE_EDGE_BOTH>;
 
             /* 1st: 0(Disable)/1(Enable) */
             /* 2nd: 0(PD1)/1(PE12)/2(PG15) */
             /* 3rd: 0(both)/1(rasing)/2(falling)/3(heigh level)/4(low level) */
-            eint3-config = <0 2 0>;
+            eint3-config = <0 2 IRQ_TYPE_EDGE_BOTH>;
             status = "okay";
         };
 

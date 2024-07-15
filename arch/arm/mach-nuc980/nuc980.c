@@ -100,9 +100,11 @@ static const char *const nuc980_dt_board_compat[] = {
 
 DT_MACHINE_START(NUC980_DT, "Nuvoton NUC980 Board")
 	.atag_offset	= 0x100,
-	// .map_io			= nuc980_map_io,
 	.init_machine 	= nuc980_dt_device_init,
 	.dt_compat		= nuc980_dt_board_compat,
-	// .init_late		= nuc980_init_late,
-	// .restart		= nuc980_restart,
+#ifndef CONFIG_GPIO_NUC980
+	.nr_irqs		= 64,
+#else
+	.nr_irqs		= 481,
+#endif
 MACHINE_END

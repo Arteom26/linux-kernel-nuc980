@@ -174,6 +174,10 @@ static void nuc980_clockevent_resume(struct clock_event_device *clk)
 {
 	unsigned long flags;
 
+	struct irq_data* data = irq_get_irq_data(clk->irq);
+	bool state = false;
+	irq_get_irqchip_state(data->irq, IRQCHIP_STATE_MASKED, &state);
+
 	local_irq_save(flags);
 	if (tmr4_msk == 1)
 		__raw_writel(0x1, REG_AIC_INTEN1);

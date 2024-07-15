@@ -1000,7 +1000,7 @@ static int __init nuc980_of_init_irq(struct device_node *node, struct device_nod
 
 	irq_set_default_host(nuc980_aic_domain);
 
-    // Request memory region
+    // Request memory regions
     reg_base = of_io_request_and_map(node, 0, "aic");
     if (!reg_base) {
         pr_err("Failed to remap memory\n");
@@ -1017,6 +1017,58 @@ static int __init nuc980_of_init_irq(struct device_node *node, struct device_nod
 	__raw_writel(0xFFFFFFFC, reg_base + REG_AIC_INTDIS0);
 	__raw_writel(0xFFFFFFFF, reg_base + REG_AIC_INTDIS1);
 	set_handle_irq(aic_handle);
+
+	int irqno;
+	for (irqno = IRQ_WDT; irqno < NOF_IRQS - SPARE_IRQS; irqno++) {
+		irq_set_chip_and_handler(irqno, &nuc980_irq_chip,
+		                         handle_level_irq);
+		irq_clear_status_flags(irqno, IRQ_NOREQUEST);
+	}
+
+#if defined(CONFIG_GPIO_NUC980)
+	/*
+	 * Install handler for GPIO edge detect interrupts
+	 */
+	irq_set_chip(IRQ_GPA, &nuc980_irq_chip);
+	irq_set_chip(IRQ_GPB, &nuc980_irq_chip);
+	irq_set_chip(IRQ_GPC, &nuc980_irq_chip);
+	irq_set_chip(IRQ_GPD, &nuc980_irq_chip);
+	irq_set_chip(IRQ_GPE, &nuc980_irq_chip);
+	irq_set_chip(IRQ_GPF, &nuc980_irq_chip);
+	irq_set_chip(IRQ_GPG, &nuc980_irq_chip);
+	irq_set_chained_handler(IRQ_GPA, nuc980_irq_demux_intgroupA);
+	irq_set_chained_handler(IRQ_GPB, nuc980_irq_demux_intgroupB);
+	irq_set_chained_handler(IRQ_GPC, nuc980_irq_demux_intgroupC);
+	irq_set_chained_handler(IRQ_GPD, nuc980_irq_demux_intgroupD);
+	irq_set_chained_handler(IRQ_GPE, nuc980_irq_demux_intgroupE);
+	irq_set_chained_handler(IRQ_GPF, nuc980_irq_demux_intgroupF);
+	irq_set_chained_handler(IRQ_GPG, nuc980_irq_demux_intgroupG);
+
+
+	for (irqno = IRQ_GPIO_START; irqno < IRQ_GPIO_END; irqno++) {
+		irq_set_chip_and_handler(irqno, &nuc980_irq_gpio,
+		                         handle_level_irq);
+		irq_clear_status_flags(irqno, IRQ_NOREQUEST);
+	}
+
+	/*
+	 * Install handler for GPIO external interrupts
+	 */
+	for (irqno = IRQ_EXT0; irqno <= IRQ_EXT3; irqno++) {
+		//printk("registering irq %d (extended nuc980 irq)\n", irqno);
+		if (!irq_set_chip(irqno, &nuc980_irq_chip)) {
+			pr_err("Unable to set IRQ chip for virt irq %d\n", irqno);
+			return -ENAVAIL;
+		}
+		irq_set_chained_handler(irqno, nuc980_irq_demux_intgroup2);
+	}
+
+	for (irqno = IRQ_EXT0_A0; irqno <= IRQ_EXT3_G15; irqno++) {
+		irq_set_chip_and_handler(irqno, &nuc980_irq_ext,
+		                         handle_level_irq);
+		irq_clear_status_flags(irqno, IRQ_NOREQUEST);
+	}
+#endif
 
 	return 0;
 }

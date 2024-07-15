@@ -124,6 +124,15 @@ config GPIO_IDIO_16
 menu "Memory mapped GPIO drivers"
 	depends on HAS_IOMEM
 
+
+config GPIO_NUC980
+	tristate "NUC980 GPIO support"
+	depends on GPIOLIB
+	depends on ARCH_NUC980
+	select NEED_MACH_GPIO_H
+	help
+		Say yes here to support GPIO functionality of NUC980 chip
+
 config GPIO_74XX_MMIO
 	tristate "GPIO driver for 74xx-ICs with MMIO access"
 	depends on OF_GPIO
