@@ -251,7 +251,7 @@ struct nuc980_pinctrl {
 	void* __iomem base;
 };
 
-static const inline struct nuc980_pin_group *nuc980_pinctrl_find_group_by_name(
+inline static const struct nuc980_pin_group *nuc980_pinctrl_find_group_by_name(
 			const struct nuc980_pinctrl *info,
 			const char *name)
 {
@@ -462,7 +462,6 @@ static int nuc980_pmx_set_mux(struct pinctrl_dev *pctldev, unsigned selector, un
 		reg = ioread32(info->base + REG_MFP_GPA_L + offset);
 
 		reg = (reg & ~(0xF << ((pin->pin & 0x7) * 4))) | (pin->func << ((pin->pin & 0x7) * 4));
-		void* __iomem write_addr = info->base + REG_MFP_GPA_L + offset;
 		iowrite32(reg, info->base + REG_MFP_GPA_L + offset);
 	}
 	return 0;

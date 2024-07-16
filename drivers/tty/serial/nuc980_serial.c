@@ -166,16 +166,16 @@ static void nuc980_Tx_dma_callback(void *arg)
 {
 	struct nuc980_dma_done *done = arg;
 	struct uart_nuc980_port *p = (struct uart_nuc980_port *)done->callback_param;
-	struct circ_buf *xmit = &p->port.state->xmit;
+	struct tty_port *tport = &p->port.state->port;
 
 	spin_lock(&p->port.lock);
 
 	p->port.icount.tx += p->tx_dma_len;
 
-	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
+	if (kfifo_len(&tport->xmit_fifo) < WAKEUP_CHARS)
 		uart_write_wakeup(&p->port);
-
-	if (!uart_circ_empty(xmit) && !uart_tx_stopped(&p->port)) {
+	
+	if (!kfifo_is_empty(&tport->xmit_fifo) && !uart_tx_stopped(&p->port)) {
 		p->Tx_pdma_busy_flag = 1;
 		nuc980_prepare_TX_dma(p);
 		// Trigger Tx dma again
@@ -377,7 +377,7 @@ static void nuc980_prepare_TX_dma(struct uart_nuc980_port *p)
 	struct nuc980_dma_config dma_ctx;
 	struct nuc980_ip_tx_dma *pdma_tx = &(p->dma_tx);
 	dma_cookie_t cookie;
-	struct circ_buf *xmit = &p->port.state->xmit;
+	struct tty_port *tport = &p->port.state->port;
 	int ret;
 
 	if(p->src_mem_p.size == 0) {
@@ -389,21 +389,14 @@ static void nuc980_prepare_TX_dma(struct uart_nuc980_port *p)
                         dev_err(p->port.dev, "src mapping error.\n");
 	}
 
-	p->tx_dma_len = uart_circ_chars_pending(xmit);
-	if (xmit->tail < xmit->head) {
-		memcpy((unsigned char *)p->src_mem_p.vir_addr, &xmit->buf[xmit->tail], p->tx_dma_len);
-	} else {
-		size_t first = UART_XMIT_SIZE - xmit->tail;
-		size_t second = xmit->head;
-		memcpy((unsigned char *)p->src_mem_p.vir_addr, &xmit->buf[xmit->tail], first);
-		if (second)
-			memcpy((unsigned char *)p->src_mem_p.vir_addr+first, &xmit->buf[0], second);
-	}
-	xmit->tail = (xmit->tail +  p->tx_dma_len) & (UART_XMIT_SIZE - 1);
+	p->tx_dma_len = kfifo_len(&tport->xmit_fifo);
+	ret = kfifo_out(&tport->xmit_fifo, (unsigned char *)p->src_mem_p.vir_addr, UART_XMIT_SIZE);
+	if (!ret)
+		dev_err(p->port.dev, "unable to get data from fifo\n");
 
 	serial_out(p, UART_REG_IER, (serial_in(p, UART_REG_IER) &~ TXPDMAEN));
 	pdma_tx->slave_config.dst_addr = (unsigned int)(p->port.membase - 0x40000000);
-	pdma_tx->slave_config.dst_addr_width = DMA_SLAVE_BUSWIDTH_1_BYTE;
+	pdma_tx->slave_config.dst_addr_width =  DMA_SLAVE_BUSWIDTH_1_BYTE;
 	pdma_tx->slave_config.dst_maxburst = 1;
 	pdma_tx->slave_config.direction = DMA_MEM_TO_DEV;
 	dmaengine_slave_config(pdma_tx->chan_tx,&(pdma_tx->slave_config));
@@ -493,7 +486,7 @@ static void nuc980serial_start_tx(struct uart_port *port)
 {
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
 	unsigned int ier;
-	struct circ_buf *xmit = &up->port.state->xmit;
+	struct tty_port *tport = &port->state->port;
 
 	if (up->rs485.flags & SER_RS485_ENABLED)
 		rs485_stop_rx(up);
@@ -503,7 +496,7 @@ static void nuc980serial_start_tx(struct uart_port *port)
 			return;
 		}
 
-		if (uart_circ_empty(xmit)) {
+		if (kfifo_is_empty(&tport->xmit_fifo)) {
 			__stop_tx(up);
 			return;
 		}
@@ -511,12 +504,10 @@ static void nuc980serial_start_tx(struct uart_port *port)
 		up->Tx_pdma_busy_flag = 1;
 		nuc980_prepare_TX_dma(up);
 		serial_out(up, UART_REG_IER, (serial_in(up, UART_REG_IER)|TXPDMAEN));
-	} else
-	{
-		struct circ_buf *xmit = &up->port.state->xmit;
+	} else {
 		ier = serial_in(up, UART_REG_IER);
 		serial_out(up, UART_REG_IER, ier & ~THRE_IEN);
-		if( uart_circ_chars_pending(xmit)<(16-((serial_in(up, UART_REG_FSR)>>16)&0x3F)) )
+		if(kfifo_len(&tport->xmit_fifo) < (16-((serial_in(up, UART_REG_FSR)>>16)&0x3F)) )
 			transmit_chars(up);
 		serial_out(up, UART_REG_IER, ier | THRE_IEN);
 	}
@@ -613,7 +604,7 @@ tout_end:
 
 static void transmit_chars(struct uart_nuc980_port *up)
 {
-	struct circ_buf *xmit = &up->port.state->xmit;
+	struct tty_port *tport = &up->port.state->port;
 	//int count = 12;
 	int count = 16 -((serial_in(up, UART_REG_FSR)>>16)&0xF);
 
@@ -634,25 +625,27 @@ static void transmit_chars(struct uart_nuc980_port *up)
 		return;
 	}
 
-	if (uart_circ_empty(xmit)) {
+	if (kfifo_is_empty(&tport->xmit_fifo)) {
 		__stop_tx(up);
 		return;
 	}
 
 	while(count > 0){
-		//while(serial_in(up, UART_REG_FSR) & TX_FULL);
-		serial_out(up, UART_REG_THR, xmit->buf[xmit->tail]);
-		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
+		char c;
+		int ret = kfifo_out(&tport->xmit_fifo, &c, 1);
+		if (!ret)
+			dev_err(up->port.dev, "Unable to send via the UART port");
+		serial_out(up, UART_REG_THR, c);
 		up->port.icount.tx++;
 		count--;
-		if (uart_circ_empty(xmit))
+		if (kfifo_is_empty(&tport->xmit_fifo))
 			break;
 	}
 
-	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
+	if (kfifo_len(&tport->xmit_fifo) < WAKEUP_CHARS)
 		uart_write_wakeup(&up->port);
 
-	if (uart_circ_empty(xmit))
+	if (kfifo_is_empty(&tport->xmit_fifo))
 		__stop_tx(up);
 
 }
