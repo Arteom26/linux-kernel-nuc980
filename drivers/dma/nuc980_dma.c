@@ -376,44 +376,14 @@ typedef struct {
 #define PDMA_OP_BASIC       0x00000001UL            /*!<DMA Basic Mode  \hideinitializer */
 #define PDMA_OP_SCATTER     0x00000002UL            /*!<DMA Scatter-gather Mode  \hideinitializer */
 
-/*---------------------------------------------------------------------------------------------------------*/
-/*  Peripheral Transfer Mode Constant Definitions                                                          */
-/*---------------------------------------------------------------------------------------------------------*/
-#define PDMA_MEM          0UL
-#define PDMA_UART0_TX     4UL
-#define PDMA_UART0_RX     5UL
-#define PDMA_UART1_TX     6UL
-#define PDMA_UART1_RX     7UL
-#define PDMA_UART2_TX     8UL
-#define PDMA_UART2_RX     9UL
-#define PDMA_UART3_TX    10UL
-#define PDMA_UART3_RX    11UL
-#define PDMA_UART4_TX    12UL
-#define PDMA_UART4_RX    13UL
-#define PDMA_UART5_TX    14UL
-#define PDMA_UART5_RX    15UL
-#define PDMA_UART6_TX    16UL
-#define PDMA_UART6_RX    17UL
-#define PDMA_UART7_TX    18UL
-#define PDMA_UART7_RX    19UL
-#define PDMA_SPI0_TX     20UL
-#define PDMA_SPI0_RX     21UL
-#define PDMA_SPI1_TX     22UL
-#define PDMA_SPI1_RX     23UL
-#define PDMA_SPI2_TX     24UL
-#define PDMA_SPI2_RX     25UL
-#define PDMA_UART8_TX     26UL
-#define PDMA_UART8_RX     27UL
-#define PDMA_UART9_TX     28UL
-#define PDMA_UART9_RX     29UL
-
 //-----------------------------------------------------------------------------------
 static void __iomem 		*pdma_reg_base;
 #define PDMA0               ((PDMA_T *)  pdma_reg_base)
 #define PDMA1               ((PDMA_T *)  (pdma_reg_base + 0x1000))
 
-#define IRQ_PDMA0	(25)
-#define IRQ_PDMA1	(26)
+static int pdma0_irq = -1;
+static int pdma1_irq = -1;
+
 //-----------------------------------------------------------------------------------
 
 #include "dmaengine.h"
@@ -440,33 +410,31 @@ static void __iomem 		*pdma_reg_base;
         { .name = (_name), .base = (_base), .irq = (_irq) }
 
 struct nuc980_dma_chan_data nuc980_dma_channels[] = {
-        DMA_CHANNEL("ch0",  NULL, -1),// PDMA0 + 0x000, IRQ_PDMA0
-        DMA_CHANNEL("ch1",  NULL, -1),// PDMA1 + 0x000, IRQ_PDMA1
-        DMA_CHANNEL("ch2",  NULL, -1),// PDMA0 + 0x010, IRQ_PDMA0
-        DMA_CHANNEL("ch3",  NULL, -1),// PDMA1 + 0x010, IRQ_PDMA1
-        DMA_CHANNEL("ch4",  NULL, -1),// PDMA0 + 0x020, IRQ_PDMA0
-        DMA_CHANNEL("ch5",  NULL, -1),// PDMA1 + 0x020, IRQ_PDMA1
-        DMA_CHANNEL("ch6",  NULL, -1),// PDMA0 + 0x030, IRQ_PDMA0
-        DMA_CHANNEL("ch7",  NULL, -1),// PDMA1 + 0x030, IRQ_PDMA1
-        DMA_CHANNEL("ch8",  NULL, -1),// PDMA0 + 0x040, IRQ_PDMA0
-        DMA_CHANNEL("ch9",  NULL, -1),// PDMA1 + 0x040, IRQ_PDMA1
-        DMA_CHANNEL("ch10", NULL, -1),// PDMA0 + 0x050, IRQ_PDMA0
-        DMA_CHANNEL("ch11", NULL, -1),// PDMA1 + 0x050, IRQ_PDMA1
-        DMA_CHANNEL("ch12", NULL, -1),// PDMA0 + 0x060, IRQ_PDMA0
-        DMA_CHANNEL("ch13", NULL, -1),// PDMA1 + 0x060, IRQ_PDMA1
-        DMA_CHANNEL("ch14", NULL, -1),// PDMA0 + 0x070, IRQ_PDMA0
-        DMA_CHANNEL("ch15", NULL, -1),// PDMA1 + 0x070, IRQ_PDMA1
-        DMA_CHANNEL("ch16", NULL, -1),// PDMA0 + 0x080, IRQ_PDMA0
-        DMA_CHANNEL("ch17", NULL, -1),// PDMA1 + 0x080, IRQ_PDMA1
-        DMA_CHANNEL("ch18", NULL, -1),// PDMA0 + 0x090, IRQ_PDMA0
-        DMA_CHANNEL("ch19", NULL, -1),// PDMA1 + 0x090, IRQ_PDMA1
+	DMA_CHANNEL("ch0",  NULL, -1),
+	DMA_CHANNEL("ch1",  NULL, -1),
+	DMA_CHANNEL("ch2",  NULL, -1),
+	DMA_CHANNEL("ch3",  NULL, -1),
+	DMA_CHANNEL("ch4",  NULL, -1),
+	DMA_CHANNEL("ch5",  NULL, -1),
+	DMA_CHANNEL("ch6",  NULL, -1),
+	DMA_CHANNEL("ch7",  NULL, -1),
+	DMA_CHANNEL("ch8",  NULL, -1),
+	DMA_CHANNEL("ch9",  NULL, -1),
+	DMA_CHANNEL("ch10", NULL, -1),
+	DMA_CHANNEL("ch11", NULL, -1),
+	DMA_CHANNEL("ch12", NULL, -1),
+	DMA_CHANNEL("ch13", NULL, -1),
+	DMA_CHANNEL("ch14", NULL, -1),
+	DMA_CHANNEL("ch15", NULL, -1),
+	DMA_CHANNEL("ch16", NULL, -1),
+	DMA_CHANNEL("ch17", NULL, -1),
+	DMA_CHANNEL("ch18", NULL, -1),
+	DMA_CHANNEL("ch19", NULL, -1),
 };
 struct nuc980_dma_platform_data nuc980_dma_data = {
-        .channels               = nuc980_dma_channels,
-        .num_channels           = ARRAY_SIZE(nuc980_dma_channels),
+	.channels               = nuc980_dma_channels,
+	.num_channels           = ARRAY_SIZE(nuc980_dma_channels),
 };
-
-
 
 struct nuc980_dma_engine;
 
@@ -584,70 +552,67 @@ struct nuc980_dma_engine {
 };
 
 static inline struct device *chan2dev(struct nuc980_dma_chan *edmac) {
-	ENTRY();
 	return &edmac->chan.dev->device;
 }
 
 static struct nuc980_dma_chan *to_nuc980_dma_chan(struct dma_chan *chan) {
-	ENTRY();
 	return container_of(chan, struct nuc980_dma_chan, chan);
 }
 
 
 static void nuc980_set_transfer_mode(PDMA_T * pdma,uint32_t u32Ch,uint32_t u32Peripheral)
 {
-
 	switch(u32Ch) {
-	case 0ul:
-		pdma->REQSEL0_3 = (pdma->REQSEL0_3 & ~PDMA_REQSEL0_3_REQSRC0_Msk) | u32Peripheral;
-		break;
-	case 1ul:
-		pdma->REQSEL0_3 = (pdma->REQSEL0_3 & ~PDMA_REQSEL0_3_REQSRC1_Msk) | (u32Peripheral << PDMA_REQSEL0_3_REQSRC1_Pos);
-		break;
-	case 2ul:
-		pdma->REQSEL0_3 = (pdma->REQSEL0_3 & ~PDMA_REQSEL0_3_REQSRC2_Msk) | (u32Peripheral << PDMA_REQSEL0_3_REQSRC2_Pos);
-		break;
-	case 3ul:
-		pdma->REQSEL0_3 = (pdma->REQSEL0_3 & ~PDMA_REQSEL0_3_REQSRC3_Msk) | (u32Peripheral << PDMA_REQSEL0_3_REQSRC3_Pos);
-		break;
-	case 4ul:
-		pdma->REQSEL4_7 = (pdma->REQSEL4_7 & ~PDMA_REQSEL4_7_REQSRC4_Msk) | u32Peripheral;
-		break;
-	case 5ul:
-		pdma->REQSEL4_7 = (pdma->REQSEL4_7 & ~PDMA_REQSEL4_7_REQSRC5_Msk) | (u32Peripheral << PDMA_REQSEL4_7_REQSRC5_Pos);
-		break;
-	case 6ul:
-		pdma->REQSEL4_7 = (pdma->REQSEL4_7 & ~PDMA_REQSEL4_7_REQSRC6_Msk) | (u32Peripheral << PDMA_REQSEL4_7_REQSRC6_Pos);
-		break;
-	case 7ul:
-		pdma->REQSEL4_7 = (pdma->REQSEL4_7 & ~PDMA_REQSEL4_7_REQSRC7_Msk) | (u32Peripheral << PDMA_REQSEL4_7_REQSRC7_Pos);
-		break;
-	case 8ul:
-		pdma->REQSEL8_11 = (pdma->REQSEL8_11 & ~PDMA_REQSEL8_11_REQSRC8_Msk) | u32Peripheral;
-		break;
-	case 9ul:
-		pdma->REQSEL8_11 = (pdma->REQSEL8_11 & ~PDMA_REQSEL8_11_REQSRC9_Msk) | (u32Peripheral << PDMA_REQSEL8_11_REQSRC9_Pos);
-		break;
-	case 10ul:
-		pdma->REQSEL8_11 = (pdma->REQSEL8_11 & ~PDMA_REQSEL8_11_REQSRC10_Msk) | (u32Peripheral << PDMA_REQSEL8_11_REQSRC10_Pos);
-		break;
-	case 11ul:
-		pdma->REQSEL8_11 = (pdma->REQSEL8_11 & ~PDMA_REQSEL8_11_REQSRC11_Msk) | (u32Peripheral << PDMA_REQSEL8_11_REQSRC11_Pos);
-		break;
-	case 12ul:
-		pdma->REQSEL12_15 = (pdma->REQSEL12_15 & ~PDMA_REQSEL12_15_REQSRC12_Msk) | u32Peripheral;
-		break;
-	case 13ul:
-		pdma->REQSEL12_15 = (pdma->REQSEL12_15 & ~PDMA_REQSEL12_15_REQSRC13_Msk) | (u32Peripheral << PDMA_REQSEL12_15_REQSRC13_Pos);
-		break;
-	case 14ul:
-		pdma->REQSEL12_15 = (pdma->REQSEL12_15 & ~PDMA_REQSEL12_15_REQSRC14_Msk) | (u32Peripheral << PDMA_REQSEL12_15_REQSRC14_Pos);
-		break;
-	case 15ul:
-		pdma->REQSEL12_15 = (pdma->REQSEL12_15 & ~PDMA_REQSEL12_15_REQSRC15_Msk) | (u32Peripheral << PDMA_REQSEL12_15_REQSRC15_Pos);
-		break;
-	default:
-		break;
+		case 0ul:
+			pdma->REQSEL0_3 = (pdma->REQSEL0_3 & ~PDMA_REQSEL0_3_REQSRC0_Msk) | u32Peripheral;
+			break;
+		case 1ul:
+			pdma->REQSEL0_3 = (pdma->REQSEL0_3 & ~PDMA_REQSEL0_3_REQSRC1_Msk) | (u32Peripheral << PDMA_REQSEL0_3_REQSRC1_Pos);
+			break;
+		case 2ul:
+			pdma->REQSEL0_3 = (pdma->REQSEL0_3 & ~PDMA_REQSEL0_3_REQSRC2_Msk) | (u32Peripheral << PDMA_REQSEL0_3_REQSRC2_Pos);
+			break;
+		case 3ul:
+			pdma->REQSEL0_3 = (pdma->REQSEL0_3 & ~PDMA_REQSEL0_3_REQSRC3_Msk) | (u32Peripheral << PDMA_REQSEL0_3_REQSRC3_Pos);
+			break;
+		case 4ul:
+			pdma->REQSEL4_7 = (pdma->REQSEL4_7 & ~PDMA_REQSEL4_7_REQSRC4_Msk) | u32Peripheral;
+			break;
+		case 5ul:
+			pdma->REQSEL4_7 = (pdma->REQSEL4_7 & ~PDMA_REQSEL4_7_REQSRC5_Msk) | (u32Peripheral << PDMA_REQSEL4_7_REQSRC5_Pos);
+			break;
+		case 6ul:
+			pdma->REQSEL4_7 = (pdma->REQSEL4_7 & ~PDMA_REQSEL4_7_REQSRC6_Msk) | (u32Peripheral << PDMA_REQSEL4_7_REQSRC6_Pos);
+			break;
+		case 7ul:
+			pdma->REQSEL4_7 = (pdma->REQSEL4_7 & ~PDMA_REQSEL4_7_REQSRC7_Msk) | (u32Peripheral << PDMA_REQSEL4_7_REQSRC7_Pos);
+			break;
+		case 8ul:
+			pdma->REQSEL8_11 = (pdma->REQSEL8_11 & ~PDMA_REQSEL8_11_REQSRC8_Msk) | u32Peripheral;
+			break;
+		case 9ul:
+			pdma->REQSEL8_11 = (pdma->REQSEL8_11 & ~PDMA_REQSEL8_11_REQSRC9_Msk) | (u32Peripheral << PDMA_REQSEL8_11_REQSRC9_Pos);
+			break;
+		case 10ul:
+			pdma->REQSEL8_11 = (pdma->REQSEL8_11 & ~PDMA_REQSEL8_11_REQSRC10_Msk) | (u32Peripheral << PDMA_REQSEL8_11_REQSRC10_Pos);
+			break;
+		case 11ul:
+			pdma->REQSEL8_11 = (pdma->REQSEL8_11 & ~PDMA_REQSEL8_11_REQSRC11_Msk) | (u32Peripheral << PDMA_REQSEL8_11_REQSRC11_Pos);
+			break;
+		case 12ul:
+			pdma->REQSEL12_15 = (pdma->REQSEL12_15 & ~PDMA_REQSEL12_15_REQSRC12_Msk) | u32Peripheral;
+			break;
+		case 13ul:
+			pdma->REQSEL12_15 = (pdma->REQSEL12_15 & ~PDMA_REQSEL12_15_REQSRC13_Msk) | (u32Peripheral << PDMA_REQSEL12_15_REQSRC13_Pos);
+			break;
+		case 14ul:
+			pdma->REQSEL12_15 = (pdma->REQSEL12_15 & ~PDMA_REQSEL12_15_REQSRC14_Msk) | (u32Peripheral << PDMA_REQSEL12_15_REQSRC14_Pos);
+			break;
+		case 15ul:
+			pdma->REQSEL12_15 = (pdma->REQSEL12_15 & ~PDMA_REQSEL12_15_REQSRC15_Msk) | (u32Peripheral << PDMA_REQSEL12_15_REQSRC15_Pos);
+			break;
+		default:
+			break;
 	}
 }
 
@@ -751,7 +716,7 @@ static void nuc980_dma_SetTimeOut(struct nuc980_dma_chan *edmac,u32 prescaler,u3
 		return;
 	}
 
-	if(edmac->irq==IRQ_PDMA0) {
+	if(edmac->irq == pdma0_irq) {
 		pdma=PDMA0;
 	} else {
 		pdma=PDMA1;
@@ -803,24 +768,6 @@ static void nuc980_dma_SetTimeOut(struct nuc980_dma_chan *edmac,u32 prescaler,u3
 
 static int hw_setup(struct nuc980_dma_chan *edmac)
 {
-#if 0
-	const struct nuc980_dma_data *data = edmac->chan.private;
-	//u32 control = 0;
-	DMA_DEBUG("NUC980 GDMA %s\n", __FUNCTION__ );
-	if (!data) {
-		/* This is memcpy channel, nothing to configure */
-		return 0;
-	}
-
-	switch (data->port) {
-	case NUC980_DMA_MEM:
-		break;
-
-	default:
-		return -EINVAL;
-	}
-#endif
-	//writel(control, edmac->regs + M2M_CONTROL);
 	return 0;
 }
 
@@ -829,7 +776,7 @@ static void hw_shutdown(struct nuc980_dma_chan *edmac)
 	ENTRY();
 	/* Just disable the channel */
 
-	if(edmac->irq==IRQ_PDMA0) {
+	if(edmac->irq == pdma0_irq) {
 		PDMA0->CHCTL &= ~(1<<edmac->id);
 	} else {
 		PDMA1->CHCTL &= ~(1<<edmac->id);
@@ -853,10 +800,10 @@ static void fill_desc(struct nuc980_dma_chan *edmac)
 
 	DMA_DEBUG("edmac->runtime_ctrl=0x%08x\n",edmac->runtime_ctrl);
 	DMA_DEBUG("desc->ctl=0x%08x\n",desc->ctl);
-	if(edmac->irq==IRQ_PDMA0) {
+	if(edmac->irq==pdma0_irq) {
 		DMA_DEBUG("PDMA0[%d] CTL=0x%08x\n",edmac->id,PDMA0->DSCT[edmac->id].CTL);
 		if((PDMA0->DSCT[edmac->id].CTL & 0x3)!=0) {
-			regT=PDMA0->CHCTL;
+			regT = PDMA0->CHCTL;
 			PDMA0->DSCT[edmac->id].CTL=0;
 			PDMA0->CHRST = (1<<edmac->id);
 			PDMA0->CHCTL = (regT | (1<<edmac->id));
@@ -865,7 +812,7 @@ static void fill_desc(struct nuc980_dma_chan *edmac)
 			PDMA0->CHCTL |= (1<<edmac->id);
 		}
 		PDMA0->INTEN |= (1<<edmac->id);
-		nuc980_set_transfer_mode(PDMA0,edmac->id,desc->config.reqsel);
+		nuc980_set_transfer_mode(PDMA0, edmac->id, desc->config.reqsel);
 		pdma = PDMA0;
 	} else {
 		DMA_DEBUG("PDMA1[%d] CTL=0x%08x\n",edmac->id,PDMA1->DSCT[edmac->id].CTL);
@@ -907,7 +854,7 @@ static void fill_desc_sc(struct nuc980_dma_chan *edmac)
 	ENTRY();
 	desc = nuc980_dma_get_active(edmac);
 
-	if(edmac->irq==IRQ_PDMA0) {
+	if(edmac->irq==pdma0_irq) {
 		DMA_DEBUG("SC PDMA0[%d] CTL=0x%08x\n",edmac->id,PDMA0->DSCT[edmac->id].CTL);
 		if((PDMA0->DSCT[edmac->id].CTL & 0x3)!=0) {
 			regT=PDMA0->CHCTL;
@@ -939,7 +886,7 @@ static void fill_desc_sc(struct nuc980_dma_chan *edmac)
 		desc->dsct[0].CTL =   (edmac->runtime_ctrl | (((desc->size/2) - 1UL) << PDMA_DSCT_CTL_TXCNT_Pos) | PDMA_OP_SCATTER);
 		desc->dsct[0].SA =  desc->src_addr;
 		desc->dsct[0].DA =  desc->dst_addr;
-		desc->dsct[0].NEXT =virt_to_phys(&desc->dsct[1].CTL);
+		desc->dsct[0].NEXT = virt_to_phys(&desc->dsct[1].CTL);
 
 		desc->dsct[1].CTL =  (edmac->runtime_ctrl | (((desc->size/2) - 1UL) << PDMA_DSCT_CTL_TXCNT_Pos) | PDMA_OP_SCATTER);
 		desc->dsct[1].SA =  desc->src_addr;
@@ -949,7 +896,7 @@ static void fill_desc_sc(struct nuc980_dma_chan *edmac)
 		desc->dsct[0].CTL =   (edmac->runtime_ctrl | (((desc->size/2) - 1UL) << PDMA_DSCT_CTL_TXCNT_Pos) | PDMA_OP_SCATTER);
 		desc->dsct[0].SA =  desc->src_addr;
 		desc->dsct[0].DA =  desc->dst_addr;
-		desc->dsct[0].NEXT =virt_to_phys(&desc->dsct[1].CTL);
+		desc->dsct[0].NEXT = virt_to_phys(&desc->dsct[1].CTL);
 
 		desc->dsct[1].CTL =  (edmac->runtime_ctrl | (((desc->size/2) - 1UL) << PDMA_DSCT_CTL_TXCNT_Pos) | PDMA_OP_SCATTER);
 		desc->dsct[1].SA =  desc->src_addr+(desc->size/2);
@@ -957,16 +904,7 @@ static void fill_desc_sc(struct nuc980_dma_chan *edmac)
 		desc->dsct[1].NEXT = virt_to_phys(&desc->dsct[0].CTL);
 	}
 
-
-	//DMA_DEBUG("===============pdma=============\n");
-	//DMA_DEBUG("(0x%08x)desc->dsct[0].CTL=0x%08x\n",&desc->dsct[0].CTL,desc->dsct[0].CTL);
-	//DMA_DEBUG("(0x%08x)desc->dsct[0].NEXT=0x%08x\n",&desc->dsct[0].NEXT,desc->dsct[0].NEXT);
-	//DMA_DEBUG("(0x%08x)desc->dsct[1].CTL=0x%08x\n",&desc->dsct[1].CTL,desc->dsct[1].CTL);
-	//DMA_DEBUG("(0x%08x)desc->dsct[1].NEXT=0x%08x\n",&desc->dsct[1].NEXT,desc->dsct[1].NEXT);
-	//DMA_DEBUG("===============================\n");
-
 	LEAVE();
-
 }
 
 
@@ -976,7 +914,7 @@ static void hw_submit(struct nuc980_dma_chan *edmac)
 	ENTRY();
 	desc = nuc980_dma_get_active(edmac);
 
-	if(edmac->irq==IRQ_PDMA0)
+	if(edmac->irq==pdma0_irq)
 		spin_lock(&pdma0_lock);
 	else
 		spin_lock(&pdma1_lock);
@@ -989,7 +927,7 @@ static void hw_submit(struct nuc980_dma_chan *edmac)
 	if(desc->config.en_sc==0) {
 		fill_desc(edmac);
 		nuc980_dma_SetTimeOut(edmac,desc->config.timeout_prescaler,desc->config.timeout_counter);
-		if(edmac->irq==IRQ_PDMA0) {
+		if(edmac->irq == pdma0_irq) {
 			PDMA0->DSCT[edmac->id].CTL = (PDMA0->DSCT[edmac->id].CTL & ~PDMA_DSCT_CTL_OPMODE_Msk) | PDMA_OP_BASIC;
 			if(desc->config.reqsel==0) {
 				PDMA0->SWREQ = 1<<(edmac->id);
@@ -1003,7 +941,7 @@ static void hw_submit(struct nuc980_dma_chan *edmac)
 	} else {
 		fill_desc_sc(edmac);
 		nuc980_dma_SetTimeOut(edmac,desc->config.timeout_prescaler,desc->config.timeout_counter);
-		if(edmac->irq==IRQ_PDMA0) {
+		if(edmac->irq==pdma0_irq) {
 			PDMA0->DSCT[edmac->id].NEXT = virt_to_phys(&desc->dsct[0].CTL);
 			PDMA0->DSCT[edmac->id].CTL = PDMA_OP_SCATTER;
 			if(desc->config.reqsel==0) {
@@ -1016,28 +954,26 @@ static void hw_submit(struct nuc980_dma_chan *edmac)
 				PDMA1->SWREQ = 1<<(edmac->id);
 			}
 		}
-
-		{
-			PDMA_T * pdma;
-			if(edmac->irq==IRQ_PDMA0)
-				pdma=PDMA0;
-			else
-				pdma=PDMA1;
-
-			DMA_DEBUG("===============pdma=============\n");
-			DMA_DEBUG("(0x%08x)pdma->DSCT[%d].CTL=0x%08x\n",&pdma->DSCT[edmac->id].CTL,edmac->id,pdma->DSCT[edmac->id].CTL);
-			DMA_DEBUG("(0x%08x)pdma->DSCT[%d].SA=0x%08x\n",&pdma->DSCT[edmac->id].SA,edmac->id,pdma->DSCT[edmac->id].SA);
-			DMA_DEBUG("(0x%08x)pdma->DSCT[%d].DA=0x%08x\n",&pdma->DSCT[edmac->id].DA,edmac->id,pdma->DSCT[edmac->id].DA);
-			DMA_DEBUG("(0x%08x)pdma->CHCTL=0x%08x\n",&pdma->CHCTL,pdma->CHCTL);
-			DMA_DEBUG("(0x%08x)pdma->INTEN=0x%08x\n",&pdma->INTEN,pdma->INTEN);
-			DMA_DEBUG("(0x%08x)pdma->INTSTS=0x%08x\n",&pdma->INTSTS,pdma->INTSTS);
-			DMA_DEBUG("(0x%08x)pdma->TDSTS=0x%08x\n",&pdma->TDSTS,pdma->TDSTS);
-			DMA_DEBUG("(0x%08x)pdma->REQSEL0_3=0x%08x\n",&pdma->REQSEL0_3,pdma->REQSEL0_3);
-			DMA_DEBUG("===============================\n");
-		}
 	}
 
-	if(edmac->irq==IRQ_PDMA0)
+	PDMA_T * pdma;
+	if(edmac->irq==pdma0_irq)
+		pdma=PDMA0;
+	else
+		pdma=PDMA1;
+
+	DMA_DEBUG("===============pdma=============\n");
+	DMA_DEBUG("(0x%08x)pdma->DSCT[%d].CTL=0x%08x\n",&pdma->DSCT[edmac->id].CTL,edmac->id,pdma->DSCT[edmac->id].CTL);
+	DMA_DEBUG("(0x%08x)pdma->DSCT[%d].SA=0x%08x\n",&pdma->DSCT[edmac->id].SA,edmac->id,pdma->DSCT[edmac->id].SA);
+	DMA_DEBUG("(0x%08x)pdma->DSCT[%d].DA=0x%08x\n",&pdma->DSCT[edmac->id].DA,edmac->id,pdma->DSCT[edmac->id].DA);
+	DMA_DEBUG("(0x%08x)pdma->CHCTL=0x%08x\n",&pdma->CHCTL,pdma->CHCTL);
+	DMA_DEBUG("(0x%08x)pdma->INTEN=0x%08x\n",&pdma->INTEN,pdma->INTEN);
+	DMA_DEBUG("(0x%08x)pdma->INTSTS=0x%08x\n",&pdma->INTSTS,pdma->INTSTS);
+	DMA_DEBUG("(0x%08x)pdma->TDSTS=0x%08x\n",&pdma->TDSTS,pdma->TDSTS);
+	DMA_DEBUG("(0x%08x)pdma->REQSEL0_3=0x%08x\n",&pdma->REQSEL0_3,pdma->REQSEL0_3);
+	DMA_DEBUG("===============================\n");
+
+	if(edmac->irq==pdma0_irq)
 		spin_unlock(&pdma0_lock);
 	else
 		spin_unlock(&pdma1_lock);
@@ -1059,7 +995,7 @@ static int hw_interrupt(struct nuc980_dma_chan *edmac)
 	bool last_done;
 	struct nuc980_dma_desc *desc;
 	ENTRY();
-	if(edmac->irq==IRQ_PDMA0) {
+	if(edmac->irq==pdma0_irq) {
 		DMA_DEBUG("PDMA0->TDSTS=0x%08x,edmac->id=%d\n",PDMA0->TDSTS,edmac->id);
 		PDMA0->TDSTS = (1<<(edmac->id));
 	} else {
@@ -1078,7 +1014,7 @@ static int hw_interrupt(struct nuc980_dma_chan *edmac)
 		if (nuc980_dma_advance_active(edmac)) {
 			DMA_DEBUG("nuc980_dma_advance_active(edmac)!=NULL\n");
 			fill_desc(edmac);
-			if(edmac->irq==IRQ_PDMA0) {
+			if(edmac->irq==pdma0_irq) {
 				PDMA0->DSCT[edmac->id].CTL = (PDMA0->DSCT[edmac->id].CTL & ~PDMA_DSCT_CTL_OPMODE_Msk) | PDMA_OP_BASIC;
 				if(desc->config.reqsel==0) {
 					PDMA0->SWREQ = 1<<(edmac->id);
@@ -1178,31 +1114,6 @@ static void nuc980_dma_advance_work(struct nuc980_dma_chan *edmac)
 	LEAVE();
 }
 
-#if 0
-static void nuc980_dma_unmap_buffers(struct nuc980_dma_desc *desc)
-{
-	struct device *dev = desc->txd.chan->device->dev;
-	ENTRY();
-	if (!(desc->txd.flags & DMA_COMPL_SKIP_SRC_UNMAP)) {
-		if (desc->txd.flags & DMA_COMPL_SRC_UNMAP_SINGLE)
-			dma_unmap_single(dev, desc->src_addr, desc->size,
-			                 DMA_TO_DEVICE);
-		else
-			dma_unmap_page(dev, desc->src_addr, desc->size,
-			               DMA_TO_DEVICE);
-	}
-	if (!(desc->txd.flags & DMA_COMPL_SKIP_DEST_UNMAP)) {
-		if (desc->txd.flags & DMA_COMPL_DEST_UNMAP_SINGLE)
-			dma_unmap_single(dev, desc->dst_addr, desc->size,
-			                 DMA_FROM_DEVICE);
-		else
-			dma_unmap_page(dev, desc->dst_addr, desc->size,
-			               DMA_FROM_DEVICE);
-	}
-	LEAVE();
-}
-#endif
-
 static void nuc980_dma_sc_tasklet(unsigned long data)
 {
 	struct nuc980_dma_chan *edmac = (struct nuc980_dma_chan *)data;
@@ -1225,10 +1136,6 @@ static void nuc980_dma_sc_tasklet(unsigned long data)
 			else
 				done->base_addr = 2;
 		}
-		DMA_DEBUG("(0x%08x)pdma->DSCT[%d].CTL=0x%08x\n",&pdma->DSCT[edmac->id].CTL,edmac->id,pdma->DSCT[edmac->id].CTL);
-		DMA_DEBUG("(0x%08x)pdma->DSCT[%d].SA=0x%08x\n",&pdma->DSCT[edmac->id].SA,edmac->id,pdma->DSCT[edmac->id].SA);
-		DMA_DEBUG("(0x%08x)pdma->DSCT[%d].DA=0x%08x\n",&pdma->DSCT[edmac->id].DA,edmac->id,pdma->DSCT[edmac->id].DA);
-		DMA_DEBUG("(0x%08x)pdma->DSCT[%d].NEXT=0x%08x\n",&pdma->DSCT[edmac->id].NEXT,edmac->id,pdma->DSCT[edmac->id].NEXT);
 	}
 
 
@@ -1272,10 +1179,6 @@ static void nuc980_dma_tasklet(unsigned long data)
 			else
 				done->base_addr = 2;
 		}
-		DMA_DEBUG("(0x%08x)pdma->DSCT[%d].CTL=0x%08x\n",&pdma->DSCT[edmac->id].CTL,edmac->id,pdma->DSCT[edmac->id].CTL);
-		DMA_DEBUG("(0x%08x)pdma->DSCT[%d].SA=0x%08x\n",&pdma->DSCT[edmac->id].SA,edmac->id,pdma->DSCT[edmac->id].SA);
-		DMA_DEBUG("(0x%08x)pdma->DSCT[%d].DA=0x%08x\n",&pdma->DSCT[edmac->id].DA,edmac->id,pdma->DSCT[edmac->id].DA);
-		DMA_DEBUG("(0x%08x)pdma->DSCT[%d].NEXT=0x%08x\n",&pdma->DSCT[edmac->id].NEXT,edmac->id,pdma->DSCT[edmac->id].NEXT);
 	}
 
 	DMA_DEBUG("*desc=0x%08x\n",*desc);
@@ -1329,7 +1232,7 @@ static void nuc980_dma_emac_interrupt(struct nuc980_dma_chan *edmac,int status)
 		if(done!=NULL) {
 			done->done = 0;
 			done->timeout=1;
-			if(edmac->irq==IRQ_PDMA0)
+			if(edmac->irq==pdma0_irq)
 				done->remain = (PDMA0->DSCT[edmac->id].CTL & PDMA_DSCT_CTL_TXCNT_Msk)>>PDMA_DSCT_CTL_TXCNT_Pos;
 			else
 				done->remain = (PDMA1->DSCT[edmac->id].CTL & PDMA_DSCT_CTL_TXCNT_Msk)>>PDMA_DSCT_CTL_TXCNT_Pos;
@@ -1341,34 +1244,35 @@ static void nuc980_dma_emac_interrupt(struct nuc980_dma_chan *edmac,int status)
 
 
 	switch (edmac->edma->hw_interrupt(edmac)) {
-	case INTERRUPT_DONE: {
-		DMA_DEBUG("INTERRUPT_DONE\n");
-		done =(struct nuc980_dma_done *)desc->txd.callback_param;
-		if(done!=NULL) {
-			done->done = 1;
-			done->timeout=0;
-			done->remain = 0;
-		}
-		if(desc->config.en_sc==0) {
-			tasklet_schedule(&edmac->tasklet);
-		} else {
-			if(edmac->sc_flag==0){
-				tasklet_schedule(&edmac->tasklet_sc);
-				edmac->sc_flag = 1;
+		case INTERRUPT_DONE: 
+		{
+			DMA_DEBUG("INTERRUPT_DONE\n");
+			done =(struct nuc980_dma_done *)desc->txd.callback_param;
+			if(done!=NULL) {
+				done->done = 1;
+				done->timeout=0;
+				done->remain = 0;
+			}
+			if(desc->config.en_sc==0) {
+				tasklet_schedule(&edmac->tasklet);
+			} else {
+				if(edmac->sc_flag==0){
+					tasklet_schedule(&edmac->tasklet_sc);
+					edmac->sc_flag = 1;
+				}
 			}
 		}
-	}
-	break;
-
-	case INTERRUPT_NEXT_BUFFER:
-		DMA_DEBUG("INTERRUPT_NEXT_BUFFER\n");
-		if (test_bit(NUC980_DMA_IS_CYCLIC, &edmac->flags))
-			tasklet_schedule(&edmac->tasklet);
 		break;
 
-	default:
-		dev_warn(chan2dev(edmac), "unknown interrupt!\n");
-		break;
+		case INTERRUPT_NEXT_BUFFER:
+			DMA_DEBUG("INTERRUPT_NEXT_BUFFER\n");
+			if (test_bit(NUC980_DMA_IS_CYCLIC, &edmac->flags))
+				tasklet_schedule(&edmac->tasklet);
+			break;
+
+		default:
+			dev_warn(chan2dev(edmac), "unknown interrupt!\n");
+			break;
 	}
 	LEAVE();
 }
@@ -1385,14 +1289,42 @@ static irqreturn_t nuc980_dma_interrupt(int irq, void *dev_id)
 	ENTRY();
 	DMA_DEBUG("irqreturn_t\n");
 	DMA_DEBUG("PDMA0->INTSTS=0x%08x,PDMA1->INTSTS=0x%08x\n",PDMA0->INTSTS,PDMA1->INTSTS);
+	DMA_DEBUG("PDMA0->ABTSTS=0x%08x,PDMA1->ABTSTS=0x%08x\n",PDMA0->ABTSTS,PDMA1->ABTSTS);
 	DMA_DEBUG("PDMA0->TDSTS=0x%08x,PDMA1->TDSTS=0x%08x\n",PDMA0->TDSTS,PDMA1->TDSTS);
 
+	// Global Status Checks
+	if (pdma0_int_status & PDMA_INTSTS_ABTIF_Msk) {
+		// Find which channel has the abort flag
+		int channel = -1;
+		for(int i = 0;i < 10;i++) {
+			if(PDMA0->ABTSTS & (1 << i)) {
+				channel = i;
+				break;
+			}
+		}
+		nuc980_set_transfer_mode(PDMA0, channel, 0);
+		PDMA0->ABTSTS |= (1 << channel);
+		dev_warn(edma->dma_dev.dev, "Error! PDMA0 Target abort on channel %d\n", channel);
+	}
+	if (pdma1_int_status & PDMA_INTSTS_ABTIF_Msk) {
+		// Find which channel has the abort flag
+		int channel = -1;
+		for(int i = 0;i < 10;i++) {
+			if(PDMA1->ABTSTS & (1 << i)) {
+				channel = i;
+				break;
+			}
+		}
+		nuc980_set_transfer_mode(PDMA1, channel, 0);
+		PDMA1->ABTSTS |= (1 << channel);
+		dev_warn(edma->dma_dev.dev, "Error! PDMA1 Target abort on channel %d\n", channel);
+	}
+
 	for(i=(edma->num_channels-1); i>=0; i--) {
-		if((edma->channels[i].irq==IRQ_PDMA0) && (irq==IRQ_PDMA0)) {
+		if((edma->channels[i].irq==pdma0_irq) && (irq==pdma0_irq)) {
 			if(pdma0_status & (1<<(edma->channels[i].id))) {
 				PDMA0->TDSTS = (1<<(edma->channels[i].id));
 				nuc980_dma_emac_interrupt(&edma->channels[i],INTERRUPT_DONE);
-				//break;
 			}
 
 			if(pdma0_int_status & (1<<(edma->channels[i].id+8))) {
@@ -1401,14 +1333,12 @@ static irqreturn_t nuc980_dma_interrupt(int irq, void *dev_id)
 				PDMA0->TOUTEN &= ~(1<<(edma->channels[i].id));
 				//PDMA0->TOUTIEN  &= ~(1<<(edma->channels[i].id));
 				PDMA0->INTSTS = (1<<(edma->channels[i].id+8));
-				//break;
 			}
 
-		} else if((edma->channels[i].irq==IRQ_PDMA1) && (irq==IRQ_PDMA1)) {
+		} else if((edma->channels[i].irq==pdma1_irq) && (irq==pdma1_irq)) {
 			if(pdma1_status & (1<<(edma->channels[i].id))) {
 				PDMA1->TDSTS = (1<<(edma->channels[i].id));
 				nuc980_dma_emac_interrupt(&edma->channels[i],INTERRUPT_DONE);
-				//break;
 			}
 			if(pdma1_int_status & (1<<(edma->channels[i].id+8))) {
 				DMA_DEBUG("PDMA1 INTERRUPT_TIMEOUT id=%d",edma->channels[i].id);
@@ -1416,7 +1346,6 @@ static irqreturn_t nuc980_dma_interrupt(int irq, void *dev_id)
 				PDMA1->TOUTEN &= ~(1<<(edma->channels[i].id));
 				//PDMA1->TOUTIEN  &= ~(1<<(edma->channels[i].id));
 				PDMA1->INTSTS = (1<<(edma->channels[i].id+8));
-				//break;
 			}
 
 		}
@@ -1457,28 +1386,6 @@ static dma_cookie_t nuc980_dma_tx_submit(struct dma_async_tx_descriptor *tx)
 	}
 	//spin_unlock_irqrestore(&edmac->lock, flags);
 
-#if 0
-	if(edmac->irq==IRQ_PDMA0) {
-		DMA_DEBUG("(0x%08x)PDMA0->DSCT[%d].CTL=0x%08x\n",&PDMA0->DSCT[edmac->id].CTL,edmac->id,PDMA0->DSCT[edmac->id].CTL);
-		DMA_DEBUG("(0x%08x)PDMA0->DSCT[%d].SA=0x%08x\n",&PDMA0->DSCT[edmac->id].SA,edmac->id,PDMA0->DSCT[edmac->id].SA);
-		DMA_DEBUG("(0x%08x)PDMA0->DSCT[%d].DA=0x%08x\n",&PDMA0->DSCT[edmac->id].DA,edmac->id,PDMA0->DSCT[edmac->id].DA);
-		DMA_DEBUG("(0x%08x)PDMA0->CHCTL=0x%08x\n",&PDMA0->CHCTL,PDMA0->CHCTL);
-		DMA_DEBUG("(0x%08x)PDMA0->INTEN=0x%08x\n",&PDMA0->INTEN,PDMA0->INTEN);
-		DMA_DEBUG("(0x%08x)PDMA0->INTSTS=0x%08x\n",&PDMA0->INTSTS,PDMA0->INTSTS);
-		DMA_DEBUG("(0x%08x)PDMA0->TDSTS=0x%08x\n",&PDMA0->TDSTS,PDMA0->TDSTS);
-		DMA_DEBUG("(0x%08x)PDMA0->REQSEL0_3=0x%08x\n",&PDMA0->REQSEL0_3,PDMA0->REQSEL0_3);
-	} else {
-		DMA_DEBUG("(0x%08x)PDMA1->DSCT[%d].CTL=0x%08x\n",&PDMA1->DSCT[edmac->id].CTL,edmac->id,PDMA1->DSCT[edmac->id].CTL);
-		DMA_DEBUG("(0x%08x)PDMA1->DSCT[%d].SA=0x%08x\n",&PDMA1->DSCT[edmac->id].SA,edmac->id,PDMA1->DSCT[edmac->id].SA);
-		DMA_DEBUG("(0x%08x)PDMA1->DSCT[%d].DA=0x%08x\n",&PDMA1->DSCT[edmac->id].DA,edmac->id,PDMA1->DSCT[edmac->id].DA);
-		DMA_DEBUG("(0x%08x)PDMA1->CHCTL=0x%08x\n",&PDMA1->CHCTL,PDMA1->CHCTL);
-		DMA_DEBUG("(0x%08x)PDMA1->INTEN=0x%08x\n",&PDMA1->INTEN,PDMA1->INTEN);
-		DMA_DEBUG("(0x%08x)PDMA1->INTSTS=0x%08x\n",&PDMA1->INTSTS,PDMA1->INTSTS);
-		DMA_DEBUG("(0x%08x)PDMA1->TDSTS=0x%08x\n",&PDMA1->TDSTS,PDMA1->TDSTS);
-		DMA_DEBUG("(0x%08x)PDMA1->REQSEL0_3=0x%08x\n",&PDMA1->REQSEL0_3,PDMA1->REQSEL0_3);
-	}
-#endif
-
 	LEAVE();
 	return cookie;
 }
@@ -1499,19 +1406,6 @@ static int nuc980_dma_alloc_chan_resources(struct dma_chan *chan)
 	int ret, i;
 	ENTRY();
 	DMA_DEBUG("name =%s\n", name);
-#if 0
-	/* Sanity check the channel parameters */
-	if (data) {
-		switch (data->port) {
-		case NUC980_DMA_MEM:
-			if (!is_slave_direction(data->direction))
-				return -EINVAL;
-			break;
-		default:
-			return -EINVAL;
-		}
-	}
-#endif
 
 	if (data && data->name)
 		name = data->name;
@@ -1559,7 +1453,6 @@ static void nuc980_dma_free_chan_resources(struct dma_chan *chan)
 	struct nuc980_dma_desc *desc, *d;
 	LIST_HEAD(list);
 	ENTRY();
-	//BUG_ON(!list_empty(&edmac->active));
 	BUG_ON(!list_empty(&edmac->queue));
 	spin_lock(&edmac->lock);
 	edmac->edma->hw_shutdown(edmac);
@@ -1652,19 +1545,15 @@ nuc980_dma_prep_slave_sg(struct dma_chan *chan, struct scatterlist *sgl,
 	int i;
 	ENTRY();
 
-	{
-		struct nuc980_dma_desc *d;
-		LIST_HEAD(list);
-		list_splice_init(&edmac->active, &list);
-		/* Now we can release all the chained descriptors */
-		list_for_each_entry_safe(desc, d, &list, node) {
-			desc->txd.flags = DMA_CTRL_ACK;
-			nuc980_dma_desc_put(edmac, desc);
-		}
+	struct nuc980_dma_desc *d;
+	LIST_HEAD(list);
+	list_splice_init(&edmac->active, &list);
+	/* Now we can release all the chained descriptors */
+	list_for_each_entry_safe(desc, d, &list, node) {
+		desc->txd.flags = DMA_CTRL_ACK;
+		nuc980_dma_desc_put(edmac, desc);
 	}
 	config =(struct nuc980_dma_config *)context;
-
-
 
 	if (test_bit(NUC980_DMA_IS_CYCLIC, &edmac->flags)) {
 		dev_warn(chan2dev(edmac),
@@ -1700,12 +1589,10 @@ nuc980_dma_prep_slave_sg(struct dma_chan *chan, struct scatterlist *sgl,
 		desc->config.timeout_counter=config->timeout_counter;
 		desc->config.timeout_prescaler=config->timeout_prescaler;
 		desc->config.en_sc = config->en_sc;
-#if 1
 		DMA_DEBUG("desc->src_addr=%x\n",desc->src_addr);
 		DMA_DEBUG("desc->dst_addr=%x\n",desc->dst_addr);
 		DMA_DEBUG("desc->size=%x\n",desc->size);
 		DMA_DEBUG("*context=%x\n",*(u32 *)context);
-#endif
 
 		if (!first)
 			first = desc;
@@ -1751,13 +1638,6 @@ nuc980_dma_prep_dma_cyclic(struct dma_chan *chan, dma_addr_t dma_addr,
 	struct nuc980_dma_desc *desc, *first;
 	size_t offset = 0;
 	ENTRY();
-#if 0
-	if (dir != nuc980_dma_chan_direction(chan)) {
-		dev_warn(chan2dev(edmac),
-		         "channel was configured with different direction\n");
-		return NULL;
-	}
-#endif
 	if (test_and_set_bit(NUC980_DMA_IS_CYCLIC, &edmac->flags)) {
 		dev_warn(chan2dev(edmac),
 		         "channel is already used for cyclic transfers\n");
@@ -1807,35 +1687,35 @@ static int nuc980_dma_slave_config(struct dma_chan *chan,
 	ENTRY();
 
 	switch (config->direction) {
-	case DMA_DEV_TO_MEM:
-		ctrl    = PDMA_DSCT_CTL_SAINC_Msk|PDMA_DSCT_CTL_TXTYPE_Msk;
-		width = config->src_addr_width;
-		addr    = config->src_addr;
-		break;
+		case DMA_DEV_TO_MEM:
+			ctrl    = PDMA_DSCT_CTL_SAINC_Msk|PDMA_DSCT_CTL_TXTYPE_Msk;
+			width = config->src_addr_width;
+			addr    = config->src_addr;
+			break;
 
-	case DMA_MEM_TO_DEV:
-		ctrl    = PDMA_DSCT_CTL_DAINC_Msk|PDMA_DSCT_CTL_TXTYPE_Msk;
-		width = config->dst_addr_width;
-		addr    = config->dst_addr;
-		break;
+		case DMA_MEM_TO_DEV:
+			ctrl    = PDMA_DSCT_CTL_DAINC_Msk|PDMA_DSCT_CTL_TXTYPE_Msk;
+			width = config->dst_addr_width;
+			addr    = config->dst_addr;
+			break;
 
-	default:
-		return -EINVAL;
+		default:
+			return -EINVAL;
 	}
 
 
 	switch (width) {
-	case DMA_SLAVE_BUSWIDTH_1_BYTE:
-		ctrl |= 0<<PDMA_DSCT_CTL_TXWIDTH_Pos;
-		break;
-	case DMA_SLAVE_BUSWIDTH_2_BYTES:
-		ctrl |= 1<<PDMA_DSCT_CTL_TXWIDTH_Pos;
-		break;
-	case DMA_SLAVE_BUSWIDTH_4_BYTES:
-		ctrl |= 2<<PDMA_DSCT_CTL_TXWIDTH_Pos;
-		break;
-	default:
-		return -EINVAL;
+		case DMA_SLAVE_BUSWIDTH_1_BYTE:
+			ctrl |= 0<<PDMA_DSCT_CTL_TXWIDTH_Pos;
+			break;
+		case DMA_SLAVE_BUSWIDTH_2_BYTES:
+			ctrl |= 1<<PDMA_DSCT_CTL_TXWIDTH_Pos;
+			break;
+		case DMA_SLAVE_BUSWIDTH_4_BYTES:
+			ctrl |= 2<<PDMA_DSCT_CTL_TXWIDTH_Pos;
+			break;
+		default:
+			return -EINVAL;
 	}
 
 	//spin_lock_irqsave(&edmac->lock, flags);
@@ -1934,14 +1814,16 @@ static int nuc980_dma_probe(struct platform_device *pdev)
 	}
 
 	// Complete struct initialization
-	for (int count = 0;count < pdata->num_channels;count++) {
+	pdma0_irq = of_irq_get_byname(pdev->dev.of_node, "pdma0_irq");
+	pdma1_irq = of_irq_get_byname(pdev->dev.of_node, "pdma1_irq");
+	for (int count = 0; count < pdata->num_channels; count++) {
 		if (count % 2 == 0) { // A PDMA0 channel
-			pdata->channels->base = PDMA0 + (count * 0x10);
-			pdata->channels->irq = of_irq_get_byname(pdev->dev.of_node, "pdma0_irq");
+			pdata->channels[count].base = ((void*)PDMA0) + ((count / 2) * 0x10);
+			pdata->channels[count].irq = of_irq_get_byname(pdev->dev.of_node, "pdma0_irq");
 		}
-		else {
-			pdata->channels->base = PDMA1 + (count * 0x10);
-			pdata->channels->irq = of_irq_get_byname(pdev->dev.of_node, "pdma0_irq");
+		else { // A PDMA1 channel
+			pdata->channels[count].base = ((void*)PDMA1) + ((count / 2) * 0x10);
+			pdata->channels[count].irq = of_irq_get_byname(pdev->dev.of_node, "pdma1_irq");
 		}
 	}
 	dma_dev = &edma->dma_dev;
@@ -1951,14 +1833,14 @@ static int nuc980_dma_probe(struct platform_device *pdev)
 	for (i = 0; i < pdata->num_channels; i++) {
 		const struct nuc980_dma_chan_data *cdata = &pdata->channels[i];
 		struct nuc980_dma_chan *edmac = &edma->channels[i];
-		DMA_DEBUG("ch=%d\n",i);
+		DMA_DEBUG("ch=%d, base=%08X, irq=%d\n", i, pdata->channels[i].base, pdata->channels[i].irq);
 		edmac->chan.device = dma_dev;
 		edmac->chan.private = 0;
 		edmac->regs = cdata->base;
 		edmac->irq = cdata->irq;
 		edmac->sc_flag = 0;
 		edmac->edma = edma;
-		edmac->id = (((unsigned int)(edmac->regs)&0xF0)>>4);
+		edmac->id = (i / 2);
 		spin_lock_init(&edmac->lock);
 		spin_lock_init(&edmac->wklock);
 		INIT_LIST_HEAD(&edmac->active);
@@ -1979,7 +1861,7 @@ static int nuc980_dma_probe(struct platform_device *pdev)
 		printk("request irq(IRQ_PDMA0) failed\n");
 		return ret;
 	}
-	ret = request_irq(of_irq_get_byname(pdev->dev.of_node, "pdma0_irq"), nuc980_dma_interrupt, IRQF_SHARED, "PDMA1", edma);
+	ret = request_irq(of_irq_get_byname(pdev->dev.of_node, "pdma1_irq"), nuc980_dma_interrupt, IRQF_SHARED, "PDMA1", edma);
 	if (ret) {
 		printk("request irq(IRQ_PDMA1) failed\n");
 		return ret;
@@ -2026,8 +1908,6 @@ static int nuc980_dma_probe(struct platform_device *pdev)
 
 static int nuc980_dma_suspend(struct platform_device *pdev,pm_message_t state)
 {
-	//struct nuc980_dma_engine *edma = platform_get_drvdata(pdev);
-	//struct nuc980_dma_chan *edmac = &edma->channels[0];
 	ENTRY();
 	LEAVE();
 	return 0;
@@ -2035,8 +1915,6 @@ static int nuc980_dma_suspend(struct platform_device *pdev,pm_message_t state)
 
 static int nuc980_dma_resume(struct platform_device *pdev)
 {
-	//struct nuc980_dma_engine *edma = platform_get_drvdata(pdev);
-	//struct nuc980_dma_chan *edmac = &edma->channels[0];
 	ENTRY();
 	LEAVE();
 	return 0;
