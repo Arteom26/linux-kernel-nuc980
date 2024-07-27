@@ -1164,7 +1164,9 @@ CONFIG_DEVPORT=y
 # end of I2C support
 
 # CONFIG_I3C is not set
-# CONFIG_SPI is not set
+CONFIG_SPI=y
+CONFIG_SPI_NUC980=y
+CONFIG_SPI_SPIDEV=y
 # CONFIG_SPMI is not set
 # CONFIG_HSI is not set
 CONFIG_PPS=y

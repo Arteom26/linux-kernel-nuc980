@@ -1569,36 +1569,47 @@
         };
 
         spi0: spi@b0061000 {
-            compatible = "nuvoton,nuc980-spi0";
+            compatible = "nuvoton,nuc980-spi";
             reg = <0xb0061000 0x1000>;
             interrupts = <52 4 1>;
             map-addr = <0xf0061000>;
             pinctrl-names = "default";
             pinctrl-0 = <&pinctrl_spi0>;
+            clocks = <&clk NUC980_CLK_SPI0>;
+            pdma-enable = <1>;
+            pdma-lines = <22 23>;// TX, RX
             status = "disabled";
 
-                        #address-cells = <1>;
-                        #size-cells = <0>;
+            #address-cells = <1>;
+            #size-cells = <0>;
 
-                        num_cs  = <2>;
-                        lsb      = <0>;
-                        txneg   = <1>;
-                        rxneg   = <0>;
-                        clkpol  = <0>;
-                        divider = <4>;
-                        sleep   = <0>;
-                        txbitlen = <8>;
-                        bus_num = <1>;
+            num_cs  = <2>;
+            lsb      = <0>;
+            txneg   = <1>;
+            rxneg   = <0>;
+            clkpol  = <0>;
+            divider = <4>;
+            sleep   = <0>;
+            txbitlen = <8>;
+            bus_num = <1>;
 
+            spidev@0 {
+                compatible = "silabs,si3210";
+                reg = <0>;
+                spi-max-frequency = <12000000>;
+            };
         };
 
         spi1: spi@b0062000 {
-            compatible = "nuvoton,nuc980-spi1";
+            compatible = "nuvoton,nuc980-spi";
             reg = <0xb0062000 0x1000>;
             interrupts = <50 4 1>;
             map-addr = <0xf0062000>;
             pinctrl-names = "default";
             pinctrl-0 = <&pinctrl_spi1>;
+            clocks = <&clk NUC980_CLK_SPI1>;
+            pdma-enable = <1>;
+            pdma-lines = <24 25>;// TX, RX
             status = "disabled";
 
                         #address-cells = <1>;

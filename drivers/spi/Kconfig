@@ -681,6 +681,35 @@ config SPI_MT65XX
 	  say Y or M here.If you are not sure, say N.
 	  SPI drivers for Mediatek MT65XX and MT81XX series ARM SoCs.
 
+
+config SPI_NUC980_QSPI0
+	tristate "Nuvoton NUC980 Series QSPI Port 0"
+	depends on ARCH_NUC980
+	select SPI_BITBANG
+	help
+	  SPI driver for Nuvoton NUC980 Series ARM SoCs
+
+choice
+	prompt "QSPI0 pin selection by transfer mode"
+	default SPI_NUC980_QSPI0_NORMAL
+	depends on SPI_NUC980_QSPI0
+	help
+	  Select QSPI0 multi-function pin.
+	  Can be PD2 ~ PD5 or additional PD6 and PD7 for quad mode.
+
+config SPI_NUC980_QSPI0_NORMAL
+	bool "Normal mode"
+config SPI_NUC980_QSPI0_QUAD
+	bool "Quad mode"
+endchoice
+
+config SPI_NUC980
+	tristate "Nuvoton NUC980 Series SPI Port"
+	depends on ARCH_NUC980
+	select SPI_BITBANG
+	help
+	  SPI driver for Nuvoton NUC980 Series ARM SoCs
+
 config SPI_MT7621
 	tristate "MediaTek MT7621 SPI Controller"
 	depends on RALINK || COMPILE_TEST

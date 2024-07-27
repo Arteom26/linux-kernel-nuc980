@@ -351,7 +351,7 @@ static void nuc980_prepare_RX_dma(struct uart_nuc980_port *p)
 	pdma_rx->rxdesc=pdma_rx->chan_rx->device->device_prep_slave_sg(pdma_rx->chan_rx,
 	                pdma_rx->sgrx,
 	                1,
-	                DMA_FROM_DEVICE,
+	                DMA_DEV_TO_MEM,
 	                DMA_PREP_INTERRUPT | DMA_CTRL_ACK,
 	                (void *)&dma_crx); //PDMA Request Source Select
 	if (!pdma_rx->rxdesc) {
@@ -411,7 +411,7 @@ static void nuc980_prepare_TX_dma(struct uart_nuc980_port *p)
 	pdma_tx->txdesc = pdma_tx->chan_tx->device->device_prep_slave_sg(pdma_tx->chan_tx,
 	                  pdma_tx->sgtx,
 	                  1,
-	                  DMA_TO_DEVICE,
+	                  DMA_MEM_TO_DEV,
 	                  DMA_PREP_INTERRUPT | DMA_CTRL_ACK,
 	                  (void *)&dma_ctx);
 	if (!pdma_tx->txdesc) {
