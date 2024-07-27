@@ -75,6 +75,8 @@
 #define NUC980_CLK_S_EMAC1_CLK		"emac1_clk"
 #define NUC980_CLK_S_CRYPTO_CLK		"crypto_clk"
 #define NUC980_CLK_S_GPIO_CLK		"gpio_clk"
+#define NUC980_CLK_S_SPI_MUX(tim_num)    	"spi" #tim_num "_clk_mux"
+#define NUC980_CLK_S_SPI_CLK(tim_num)    	"spi" #tim_num "_clk"
 
 struct nuc980_clk_pll_data {
 	u32 reg;
@@ -304,25 +306,30 @@ static const char * const timer01_45_mux_parents[] __initconst = { NUC980_CLK_S_
 static const char * const timer23_mux_parents[] __initconst = { NUC980_CLK_S_XIN, NUC980_CLK_S_PCLK1, NUC980_CLK_S_PCLK_DIV4096, NUC980_CLK_S_XIN32K };
 static const char * const sdh_mux_parents[] __initconst = { NUC980_CLK_S_XIN, NUC980_CLK_S_APLL, NUC980_CLK_S_UPLL };
 static u32 sdh_mux_table[] = {0, 2, 3};
+static const char * const spi0_mux_parents[] __initconst = { NUC980_CLK_S_XIN, NUC980_CLK_S_PCLK0, NUC980_CLK_S_APLL, NUC980_CLK_S_UPLL };
+static const char * const spi1_mux_parents[] __initconst = { NUC980_CLK_S_XIN, NUC980_CLK_S_PCLK1, NUC980_CLK_S_APLL, NUC980_CLK_S_UPLL };
+static u32 spi_mux_table[]  = {0, 1, 2, 3};
 static const struct nuc980_clk_mux_data nuc980_muxes[] __initconst = {
-	{ CLK_DIVCTL0, 3, 2, sysclk_mux_table, NUC980_CLK_S_SYSMUX, sysclk_mux_parents, ARRAY_SIZE(sysclk_mux_parents), 0, -1 },
-	{ CLK_DIVCTL4, 3, 2, uart_mux_table, NUC980_CLK_S_UART_MUX(0), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
-	{ CLK_DIVCTL4, 11, 2, uart_mux_table, NUC980_CLK_S_UART_MUX(1), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
-	{ CLK_DIVCTL4, 19, 2, uart_mux_table, NUC980_CLK_S_UART_MUX(2), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
-	{ CLK_DIVCTL4, 27, 2, uart_mux_table, NUC980_CLK_S_UART_MUX(3), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
-	{ CLK_DIVCTL5, 3, 2, uart_mux_table, NUC980_CLK_S_UART_MUX(4), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
-	{ CLK_DIVCTL5, 11, 2, uart_mux_table, NUC980_CLK_S_UART_MUX(5), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
-	{ CLK_DIVCTL5, 19, 2, uart_mux_table, NUC980_CLK_S_UART_MUX(6), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
-	{ CLK_DIVCTL5, 27, 2, uart_mux_table, NUC980_CLK_S_UART_MUX(7), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
-	{ CLK_DIVCTL6, 3, 2, uart_mux_table, NUC980_CLK_S_UART_MUX(8), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
-	{ CLK_DIVCTL6, 11, 2, uart_mux_table, NUC980_CLK_S_UART_MUX(9), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
-	{ CLK_DIVCTL8, 16, 2, timer_mux_table, NUC980_CLK_S_TIM_MUX(0), timer01_45_mux_parents, ARRAY_SIZE(timer01_45_mux_parents), 0, -1 },
-	{ CLK_DIVCTL8, 18, 2, timer_mux_table, NUC980_CLK_S_TIM_MUX(1), timer01_45_mux_parents, ARRAY_SIZE(timer01_45_mux_parents), 0, -1 },
-	{ CLK_DIVCTL8, 20, 2, timer_mux_table, NUC980_CLK_S_TIM_MUX(2), timer23_mux_parents, ARRAY_SIZE(timer23_mux_parents), 0, -1 },
-	{ CLK_DIVCTL8, 22, 2, timer_mux_table, NUC980_CLK_S_TIM_MUX(3), timer23_mux_parents, ARRAY_SIZE(timer23_mux_parents), 0, -1 },
-	{ CLK_DIVCTL8, 24, 2, timer_mux_table, NUC980_CLK_S_TIM_MUX(4), timer01_45_mux_parents, ARRAY_SIZE(timer01_45_mux_parents), 0, -1 },
-	{ CLK_DIVCTL8, 26, 2, timer_mux_table, NUC980_CLK_S_TIM_MUX(5), timer01_45_mux_parents, ARRAY_SIZE(timer01_45_mux_parents), 0, -1 },
-	{ CLK_DIVCTL9, 3, 2, sdh_mux_table, NUC980_CLK_S_SDH_MUX, sdh_mux_parents, ARRAY_SIZE(sdh_mux_parents), 0, -1 },
+	{ CLK_DIVCTL0, 3, GENMASK(1, 0), sysclk_mux_table, NUC980_CLK_S_SYSMUX, sysclk_mux_parents, ARRAY_SIZE(sysclk_mux_parents), 0, -1 },
+	{ CLK_DIVCTL4, 3, GENMASK(1, 0), uart_mux_table, NUC980_CLK_S_UART_MUX(0), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
+	{ CLK_DIVCTL4, 11, GENMASK(1, 0), uart_mux_table, NUC980_CLK_S_UART_MUX(1), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
+	{ CLK_DIVCTL4, 19, GENMASK(1, 0), uart_mux_table, NUC980_CLK_S_UART_MUX(2), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
+	{ CLK_DIVCTL4, 27, GENMASK(1, 0), uart_mux_table, NUC980_CLK_S_UART_MUX(3), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
+	{ CLK_DIVCTL5, 3, GENMASK(1, 0), uart_mux_table, NUC980_CLK_S_UART_MUX(4), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
+	{ CLK_DIVCTL5, 11, GENMASK(1, 0), uart_mux_table, NUC980_CLK_S_UART_MUX(5), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
+	{ CLK_DIVCTL5, 19, GENMASK(1, 0), uart_mux_table, NUC980_CLK_S_UART_MUX(6), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
+	{ CLK_DIVCTL5, 27, GENMASK(1, 0), uart_mux_table, NUC980_CLK_S_UART_MUX(7), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
+	{ CLK_DIVCTL6, 3, GENMASK(1, 0), uart_mux_table, NUC980_CLK_S_UART_MUX(8), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
+	{ CLK_DIVCTL6, 11, GENMASK(1, 0), uart_mux_table, NUC980_CLK_S_UART_MUX(9), uart_mux_parents, ARRAY_SIZE(uart_mux_parents), 0, -1 },
+	{ CLK_DIVCTL8, 16, GENMASK(1, 0), timer_mux_table, NUC980_CLK_S_TIM_MUX(0), timer01_45_mux_parents, ARRAY_SIZE(timer01_45_mux_parents), 0, -1 },
+	{ CLK_DIVCTL8, 18, GENMASK(1, 0), timer_mux_table, NUC980_CLK_S_TIM_MUX(1), timer01_45_mux_parents, ARRAY_SIZE(timer01_45_mux_parents), 0, -1 },
+	{ CLK_DIVCTL8, 20, GENMASK(1, 0), timer_mux_table, NUC980_CLK_S_TIM_MUX(2), timer23_mux_parents, ARRAY_SIZE(timer23_mux_parents), 0, -1 },
+	{ CLK_DIVCTL8, 22, GENMASK(1, 0), timer_mux_table, NUC980_CLK_S_TIM_MUX(3), timer23_mux_parents, ARRAY_SIZE(timer23_mux_parents), 0, -1 },
+	{ CLK_DIVCTL8, 24, GENMASK(1, 0), timer_mux_table, NUC980_CLK_S_TIM_MUX(4), timer01_45_mux_parents, ARRAY_SIZE(timer01_45_mux_parents), 0, -1 },
+	{ CLK_DIVCTL8, 26, GENMASK(1, 0), timer_mux_table, NUC980_CLK_S_TIM_MUX(5), timer01_45_mux_parents, ARRAY_SIZE(timer01_45_mux_parents), 0, -1 },
+	{ CLK_DIVCTL9, 3, GENMASK(1, 0), sdh_mux_table, NUC980_CLK_S_SDH_MUX, sdh_mux_parents, ARRAY_SIZE(sdh_mux_parents), 0, -1 },
+	{ CLK_DIVCTL2, 10, GENMASK(1, 0), spi_mux_table, NUC980_CLK_S_SPI_MUX(0), spi0_mux_parents, ARRAY_SIZE(spi0_mux_parents), 0, -1 },
+	{ CLK_DIVCTL2, 12, GENMASK(1, 0), spi_mux_table, NUC980_CLK_S_SPI_MUX(1), spi1_mux_parents, ARRAY_SIZE(spi1_mux_parents), 0, -1 },
 };
 
 // TODO: For every periphal have to seperate clock setups - clock type selection & enable
@@ -359,6 +366,8 @@ static const struct nuc980_clk_gate_data nuc980_gates[] __initconst = {
 	{ CLK_HCLKEN, 17, NUC980_CLK_S_EMAC1_CLK, NUC980_CLK_S_EMAC1_DIV, 0, 0, NUC980_CLK_EMAC1 },
 	{ CLK_HCLKEN, 23, NUC980_CLK_S_CRYPTO_CLK, NUC980_CLK_S_HCLK3, 0, 0, NUC980_CLK_CRYPTO },// Cryto unit clock gate
 	{ CLK_HCLKEN, 11, NUC980_CLK_S_GPIO_CLK, NUC980_CLK_S_HCLK1, 0, 0, NUC980_CLK_GPIO },// GPIO clock gate
+	{ CLK_PCLKEN1, 5, NUC980_CLK_S_SPI_CLK(0), NUC980_CLK_S_SPI_MUX(0), 0, 0, NUC980_CLK_SPI0 },// SPI clock gates
+	{ CLK_PCLKEN1, 6, NUC980_CLK_S_SPI_CLK(1), NUC980_CLK_S_SPI_MUX(1), 0, 0, NUC980_CLK_SPI1 },
 };
 
 static DEFINE_SPINLOCK(nuc980_clk_lock);
@@ -455,26 +464,6 @@ static void __init nuc980_clk_init(struct device_node *clk_np)
 			nuc980_clk_data->hws[div_data->onecell_idx] = hw;
 	}
 
-    /* Register muxes */
-	for (int i = 0; i < ARRAY_SIZE(nuc980_muxes); i++) {
-		const struct nuc980_clk_mux_data *mux_data = &nuc980_muxes[i];
-
-		hw = clk_hw_register_mux_table(NULL,
-			mux_data->name,
-			mux_data->parent_names, mux_data->num_parents,
-			mux_data->flags, clk_base + mux_data->reg,
-			mux_data->shift, mux_data->mask, 0,
-			mux_data->table, &nuc980_clk_lock);
-
-		if (IS_ERR(hw)) {
-			pr_err("nuc980_clk: Can't register mux\n");
-			goto nuc980_init_fail;
-		}
-
-		if (mux_data->onecell_idx >= 0)
-			nuc980_clk_data->hws[mux_data->onecell_idx] = hw;
-	}
-
 	/* Register gates */
 	for (int i = 0; i < ARRAY_SIZE(nuc980_gates); i++) {
 		const struct nuc980_clk_gate_data *gate_data = &nuc980_gates[i];
@@ -495,11 +484,38 @@ static void __init nuc980_clk_init(struct device_node *clk_np)
 			nuc980_clk_data->hws[gate_data->onecell_idx] = hw;
 	}
 
+    /* Register muxes */
+	for (int i = 0; i < ARRAY_SIZE(nuc980_muxes); i++) {
+		const struct nuc980_clk_mux_data *mux_data = &nuc980_muxes[i];
+
+		hw = clk_hw_register_mux_table(NULL,
+			mux_data->name,
+			mux_data->parent_names, mux_data->num_parents,
+			mux_data->flags, clk_base + mux_data->reg,
+			mux_data->shift, mux_data->mask, 0,
+			mux_data->table, &nuc980_clk_lock);
+
+		if (IS_ERR(hw)) {
+			pr_err("nuc980_clk: Can't register mux\n");
+			goto nuc980_init_fail;
+		}
+
+		if (mux_data->onecell_idx >= 0)
+			nuc980_clk_data->hws[mux_data->onecell_idx] = hw;
+	}
+
     ret = of_clk_add_hw_provider(clk_np, of_clk_hw_onecell_get, nuc980_clk_data);
 	if (ret)
 		pr_err("failed to add DT provider: %d\n", ret);
 
 	of_node_put(clk_np);
+
+	// Setup initial clk muxs for values changed in bootloader
+	clk_hw_set_parent(clk_hw_get_parent(nuc980_clk_data->hws[NUC980_CLK_SPI0]), clk_hw_get_parent_by_index(clk_hw_get_parent(nuc980_clk_data->hws[NUC980_CLK_SPI0]), 0));// SPI0 Runs of 12MHz oscillator
+	clk_hw_set_parent(clk_hw_get_parent(nuc980_clk_data->hws[NUC980_CLK_SPI1]), clk_hw_get_parent_by_index(clk_hw_get_parent(nuc980_clk_data->hws[NUC980_CLK_SPI1]), 0));// SPI1 Runs of 12MHz oscillator
+	
+	printk("CLK_DIVCTL0 is %08X!!!!!!!!!!!!!!!!!!!!!!!\n", __raw_readl(clk_base + CLK_DIVCTL0));
+	printk("CLK_DIVCTL2 is %08X!!!!!!!!!!!!!!!!!!!!!!!\n", __raw_readl(clk_base + CLK_DIVCTL2));
 
     return;
 
