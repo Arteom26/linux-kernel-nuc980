@@ -513,9 +513,6 @@ static void __init nuc980_clk_init(struct device_node *clk_np)
 	// Setup initial clk muxs for values changed in bootloader
 	clk_hw_set_parent(clk_hw_get_parent(nuc980_clk_data->hws[NUC980_CLK_SPI0]), clk_hw_get_parent_by_index(clk_hw_get_parent(nuc980_clk_data->hws[NUC980_CLK_SPI0]), 0));// SPI0 Runs of 12MHz oscillator
 	clk_hw_set_parent(clk_hw_get_parent(nuc980_clk_data->hws[NUC980_CLK_SPI1]), clk_hw_get_parent_by_index(clk_hw_get_parent(nuc980_clk_data->hws[NUC980_CLK_SPI1]), 0));// SPI1 Runs of 12MHz oscillator
-	
-	printk("CLK_DIVCTL0 is %08X!!!!!!!!!!!!!!!!!!!!!!!\n", __raw_readl(clk_base + CLK_DIVCTL0));
-	printk("CLK_DIVCTL2 is %08X!!!!!!!!!!!!!!!!!!!!!!!\n", __raw_readl(clk_base + CLK_DIVCTL2));
 
     return;
 

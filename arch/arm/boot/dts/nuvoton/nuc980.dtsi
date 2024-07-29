@@ -1475,8 +1475,8 @@
 
         gpio: gpio@b0004000 {
             compatible = "nuvoton,nuc980-gpio";
-            reg = <0xb0004000 0x1000>, <0xb0000000 0x1000>;
-            reg-names = "gpio", "pwr";
+            reg = <0xb0000000 0x1000>, <0xb0004000 0x1000>;
+            reg-names = "pwr", "gpio";
             clocks = <&clk NUC980_CLK_GPIO>;
             interrupts = <57 4 1>;
             port-number = <0>;
@@ -1593,10 +1593,31 @@
             txbitlen = <8>;
             bus_num = <1>;
 
-            spidev@0 {
-                compatible = "silabs,si3210";
+            // spidev@0 {
+            //     compatible = "silabs,si3210";
+            //     reg = <0>;
+            //     spi-max-frequency = <12000000>;
+            // };
+
+            display@0 {
+                compatible = "ilitek,ili9486";
                 reg = <0>;
-                spi-max-frequency = <12000000>;
+                spi-max-frequency = <16000000>;
+
+                reset-gpios = <&gpio 0x6F GPIO_ACTIVE_LOW>; // reset is active low - PD15
+                dc-gpios = <&gpio 0x25 GPIO_ACTIVE_HIGH>;// PB5
+				// led-gpios = <&gpio 0x27 GPIO_ACTIVE_HIGH>;// PB7
+
+                width = <320>;
+				height = <480>;
+				buswidth = <8>; // Most controllers use this value
+
+                // This is a hack to prevent fb_s6d02a1.c:set_var() from issuing
+				// command 0x36 after the init sequence has been applied and thus
+				// changing the config.
+				rotate = <1>;
+
+                debug = <0x10>; // print first update
             };
         };
 

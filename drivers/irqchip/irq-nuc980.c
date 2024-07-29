@@ -128,7 +128,7 @@
 #define IRQ_CAN2	NUC980_IRQ(62)
 #define IRQ_GPG		NUC980_IRQ(63)
 
-#ifndef CONFIG_GPIO_NUC980
+#if 0
 #define SPARE_IRQS	(64)
 #define NOF_IRQS		(IRQ_GPG + SPARE_IRQS + 1)
 
@@ -381,7 +381,7 @@
 #endif
 
 static void __iomem *reg_base;
-static void __iomem *gpio_base;
+// static void __iomem *gpio_base;
 
 static void nuc980_irq_mask(struct irq_data *d)
 {
@@ -418,7 +418,7 @@ static struct irq_chip nuc980_irq_chip = {
 	.irq_set_wake = nuc980_irq_set_wake,
 };
 
-#if defined(CONFIG_GPIO_NUC980)
+#if 0
 
 static const unsigned int Port[7] = {
 	(unsigned int)REG_GPIOA_MODE,
@@ -913,7 +913,7 @@ static int nuc980_aic_irq_map(struct irq_domain *h, unsigned int virq,
 		                         handle_level_irq);
 		irq_clear_status_flags(virq, IRQ_NOREQUEST);
 
-#if defined(CONFIG_GPIO_NUC980)
+#if 0
 
 		{
 			int irqno;
@@ -1008,11 +1008,11 @@ static int __init nuc980_of_init_irq(struct device_node *node, struct device_nod
     }
 
 	// Request GPIO Memory Region
-	gpio_base = of_io_request_and_map(node, 1, "gpio");
-    if (!reg_base) {
-        pr_err("Failed to remap memory\n");
-        return -ENOMEM;
-    }
+	// gpio_base = of_io_request_and_map(node, 1, "gpio");
+    // if (!reg_base) {
+    //     pr_err("Failed to remap memory\n");
+    //     return -ENOMEM;
+    // }
 
 	__raw_writel(0xFFFFFFFC, reg_base + REG_AIC_INTDIS0);
 	__raw_writel(0xFFFFFFFF, reg_base + REG_AIC_INTDIS1);
@@ -1025,7 +1025,7 @@ static int __init nuc980_of_init_irq(struct device_node *node, struct device_nod
 		irq_clear_status_flags(irqno, IRQ_NOREQUEST);
 	}
 
-#if defined(CONFIG_GPIO_NUC980)
+#if 0
 	/*
 	 * Install handler for GPIO edge detect interrupts
 	 */

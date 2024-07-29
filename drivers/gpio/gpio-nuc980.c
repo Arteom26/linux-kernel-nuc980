@@ -400,7 +400,7 @@ static void nuc980_gpio_core_set(struct gpio_chip *gc, unsigned gpio_num,
 	const struct gpio_port *port;
 	ENTRY();
 	port = nuc980_gpio_cla_port(gpio_num, &group_num, &port_num);
-	GPIO_PIN_DATA(gpio_base, group_num,port_num) = val;
+	GPIO_PIN_DATA(gpio_base, group_num, port_num) = val;
 	LEAVE();
 }
 EXPORT_SYMBOL_GPL(nuc980_gpio_core_set);
@@ -433,7 +433,7 @@ static int nuc980_gpio_core_to_request(struct gpio_chip *chip, unsigned offset)
 	ENTRY();
 	group = offset / GPIO_OFFSET;
 	num1  = num = offset % GPIO_OFFSET;
-	reg   = gpio_base + REG_MFP_GPA_L + (group * 0x08);
+	reg   = pwr_base + REG_MFP_GPA_L + (group * 0x08);
 	if(num>7) {
 		num -= 8;
 		reg = reg + 0x04 ;
@@ -657,44 +657,51 @@ static int nuc980_gpio_of_xlate(struct gpio_chip *gc,
 
 static int nuc980_gpio_probe(struct platform_device *pdev)
 {
-	int err;
+	int err, i;
 	struct clk *clk;
 	struct device_node *np = pdev->dev.of_node;
-	{
-		printk("%s - pdev = %s\n", __func__, pdev->name);
-		/* Enable GPIO clock */
-		clk = of_clk_get(np, 0);
-		if (IS_ERR(clk)) {
-			printk(KERN_ERR "nuc980-gpio:failed to get gpio clock source\n");
-			err = PTR_ERR(clk);
-			return err;
-		}
-        clk_prepare_enable(clk);
+	struct resource res;
+	printk("%s - pdev = %s\n", __func__, pdev->name);
+	/* Enable GPIO clock */
+	clk = of_clk_get(np, 0);
+	if (IS_ERR(clk)) {
+		printk(KERN_ERR "nuc980-gpio:failed to get gpio clock source\n");
+		err = PTR_ERR(clk);
+		return err;
+	}
+	clk_prepare_enable(clk);
 
-        gpio_base = of_io_request_and_map(np, 0, "gpio");
-        if (!gpio_base) {
-            dev_err(&pdev->dev, "Failed to remap gpio_base memory\n");
-            return -ENOMEM;
-        }
+	i = of_property_match_string(np, "reg-names", "gpio");
+	if (of_address_to_resource(np, i, &res))
+		return -ENOMEM;
+	
+	gpio_base = devm_ioremap_resource(&pdev->dev, &res);
+	if (!gpio_base) {
+		dev_err(&pdev->dev, "Failed to remap gpio_base memory\n");
+		return -ENOMEM;
+	}
 
-        pwr_base = of_io_request_and_map(np, 1, "pwr");
-        if (!pwr_base) {
-            dev_err(&pdev->dev, "Failed to remap pwr_base memory\n");
-            return -ENOMEM;
-        }
+	i = of_property_match_string(np, "reg-names", "pwr");
+	if (of_address_to_resource(np, i, &res))
+		return -ENOMEM;
+	pwr_base = devm_ioremap_resource(&pdev->dev, &res);
+	if (!pwr_base) {
+		dev_err(&pdev->dev, "Failed to remap pwr_base memory\n");
+		return -ENOMEM;
+	}
 
-		struct irq_domain *domain = irq_domain_add_legacy(np, IRQ_GPIO_END - IRQ_GPIO_START, IRQ_GPIO_START, 0, &irq_domain_simple_ops, NULL);
-		if (!domain) {
-			dev_err(&pdev->dev, "Failed to add irq legacy domain\n");
-			return -ENOENT;
-		}
-		
-		nuc980_gpio.of_xlate = nuc980_gpio_of_xlate;
-		nuc980_gpio.of_gpio_n_cells = 2;
-		err = gpiochip_add(&nuc980_gpio);
-		if (err < 0) {
-			goto err_nuc980_gpio_port;
-		}
+	struct irq_domain *domain = irq_domain_add_legacy(np, IRQ_GPIO_END - IRQ_GPIO_START, IRQ_GPIO_START, 0, &irq_domain_simple_ops, NULL);
+	if (!domain) {
+		dev_err(&pdev->dev, "Failed to add irq legacy domain\n");
+		return -ENOENT;
+	}
+	
+	nuc980_gpio.of_xlate = nuc980_gpio_of_xlate;
+	nuc980_gpio.of_gpio_n_cells = 2;
+	nuc980_gpio.parent = &pdev->dev;
+	err = gpiochip_add(&nuc980_gpio);
+	if (err < 0) {
+		goto err_nuc980_gpio_port;
 	}
 #ifdef CONFIG_GPIO_NUC980_EINT_WKUP
 	nuc980_enable_eint(1,pdev);
