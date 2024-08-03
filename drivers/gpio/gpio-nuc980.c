@@ -32,9 +32,10 @@
 #include <linux/of_address.h>
 #include <linux/gpio/driver.h>
 #include <linux/gpio/consumer.h>
+#include <linux/irq.h>
+#include <linux/of_irq.h>
 
-//#define GPIO_DEBUG_ENABLE_ENTER_LEAVE
-#ifdef GPIO_DEBUG_ENABLE_ENTER_LEAVE
+#if 0
 #define ENTRY()                 printk("[%-20s] : Enter...\n", __FUNCTION__)
 #define LEAVE()                 printk("[%-20s] : Leave...\n", __FUNCTION__)
 #else
@@ -292,23 +293,26 @@
 #define GPIO_OFFSET 0x20
 #define NUMGPIO 0x20 * 7    //(PortA~PortG)
 
-#define IRQ_GPIO_START		0x100
-#define IRQ_GPIO_END		0x100 + 0xE0
+#define EXT0_BASE 			100
+#define IRQ_EXT0_A0  		EXT0_BASE + 0
+#define IRQ_EXT1_A1  		EXT0_BASE + 1
+#define IRQ_EXT2_D0  		EXT0_BASE + 2
+#define IRQ_EXT3_D1  		EXT0_BASE + 3
+#define IRQ_EXT0_A13 		EXT0_BASE + 4
+#define IRQ_EXT1_A14 		EXT0_BASE + 5
+#define IRQ_EXT2_E10 		EXT0_BASE + 6
+#define IRQ_EXT3_E12 		EXT0_BASE + 7	
+#define IRQ_EXT2_B3  		EXT0_BASE + 8
+#define IRQ_EXT2_B13 		EXT0_BASE + 9
+#define IRQ_EXT3_G15 		EXT0_BASE +10
 
-#define EXT0_BASE 		100
-#define IRQ_EXT0_A0           EXT0_BASE + 0
-#define IRQ_EXT1_A1           EXT0_BASE + 1
-#define IRQ_EXT2_D0           EXT0_BASE + 2
-#define IRQ_EXT3_D1           EXT0_BASE + 3
-
-#define IRQ_EXT0_A13          EXT0_BASE + 4
-#define IRQ_EXT1_A14          EXT0_BASE + 5
-#define IRQ_EXT2_E10          EXT0_BASE + 6
-#define IRQ_EXT3_E12          EXT0_BASE + 7
-
-#define IRQ_EXT2_B3           EXT0_BASE + 8
-#define IRQ_EXT2_B13          EXT0_BASE + 9
-#define IRQ_EXT3_G15          EXT0_BASE +10
+#define IRQ_GPA				8
+#define IRQ_GPB				9
+#define IRQ_GPC				10
+#define IRQ_GPD				11
+#define IRQ_GPE				49
+#define IRQ_GPF				57
+#define IRQ_GPG				63
 
 static DEFINE_SPINLOCK(gpio_lock);
 
@@ -454,64 +458,6 @@ static void nuc980_gpio_core_to_free(struct gpio_chip *chip, unsigned offset)
 	ENTRY();
 }
 
-static int nuc980_gpio_core_to_irq(struct gpio_chip *chip, unsigned offset)
-{
-	unsigned int irqno = IRQ_GPIO_START + offset;
-	ENTRY();
-	switch(offset) {
-	case NUC980_PA0:
-		if((__raw_readl(pwr_base + REG_MFP_GPA_L) & (0xf<<0))==(0x5<<0))
-			irqno = IRQ_EXT0_A0;
-		break;
-
-	case NUC980_PA1:
-		if((__raw_readl(pwr_base + REG_MFP_GPA_L) & (0xf<<4))==(0x5<<4))
-			irqno = IRQ_EXT1_A1;
-		break;
-	case NUC980_PD0:
-		if((__raw_readl(pwr_base + REG_MFP_GPD_L) & (0xf<<0))==(0x4<<0))
-			irqno = IRQ_EXT2_D0;
-		break;
-	case NUC980_PD1:
-		if((__raw_readl(pwr_base + REG_MFP_GPD_L) & (0xf<<4))==(0x4<<4))
-			irqno = IRQ_EXT3_D1;
-		break;
-	case NUC980_PA13:
-		if((__raw_readl(pwr_base + REG_MFP_GPA_H) & (0xf<<20))==(0x8<<20))
-			irqno = IRQ_EXT0_A13;
-		break;
-	case NUC980_PA14:
-		if((__raw_readl(pwr_base + REG_MFP_GPA_H) & (0xf<<24))==(0x8<<24))
-			irqno = IRQ_EXT1_A14;
-		break;
-	case NUC980_PE10:
-		if((__raw_readl(pwr_base + REG_MFP_GPE_H) & (0xf<<8))==(0x5<<8))
-			irqno = IRQ_EXT2_E10;
-		break;
-	case NUC980_PE12:
-		if((__raw_readl(pwr_base + REG_MFP_GPE_H) & (0xf<<16))==(0x5<<16))
-			irqno = IRQ_EXT3_E12;
-		break;
-	case NUC980_PB3:
-		if((__raw_readl(pwr_base + REG_MFP_GPB_L) & (0xf<<12))==(0x3<<12))
-			irqno = IRQ_EXT2_B3;
-		break;
-	case NUC980_PB13:
-		if((__raw_readl(pwr_base + REG_MFP_GPB_H) & (0xf<<20))==(0x2<<20))
-			irqno = IRQ_EXT2_B13;
-		break;
-	case NUC980_PG15:
-		if((__raw_readl(pwr_base + REG_MFP_GPG_H) & (0xf<<24))==(0x4<<24))
-			irqno = IRQ_EXT3_G15;
-		break;
-	default:
-		irqno = IRQ_GPIO_START + offset;
-		break;
-	}
-	LEAVE();
-	return irqno;
-}
-
 static struct gpio_chip nuc980_gpio = {
 	.label = "gpio-nuc980",
 	.owner = THIS_MODULE,
@@ -521,9 +467,218 @@ static struct gpio_chip nuc980_gpio = {
 	.set = nuc980_gpio_core_set,
 	.request = nuc980_gpio_core_to_request,
 	.free = nuc980_gpio_core_to_free,
-	.to_irq = nuc980_gpio_core_to_irq,
-	.base = 0,
+	.base = -1,// Dynamically allocate gpio numbers
 	.ngpio = NUMGPIO,
+};
+
+static const unsigned int Port[7] = {
+	(unsigned int)REG_GPIOA_MODE,
+	(unsigned int)REG_GPIOB_MODE,
+	(unsigned int)REG_GPIOC_MODE,
+	(unsigned int)REG_GPIOD_MODE,
+	(unsigned int)REG_GPIOE_MODE,
+	(unsigned int)REG_GPIOF_MODE,
+	(unsigned int)REG_GPIOG_MODE
+};
+
+static unsigned int gpio_type[8];
+static unsigned int gpio_inten[8];
+
+static void nuc980_irq_gpio_mask(struct irq_data *d)
+{
+	struct gpio_chip *gc = irq_data_get_irq_chip_data(d);
+	irq_hw_number_t hwirq = irqd_to_hwirq(d);
+
+	unsigned int port,num;
+	ENTRY();
+	port =(hwirq) / GPIO_OFFSET;
+	num  =(hwirq) % GPIO_OFFSET;
+	__raw_writel(__raw_readl(gpio_base + (Port[port]+0x1C)) &~(0x1<<(num+16)), gpio_base + (Port[port]+0x1C));
+	__raw_writel(__raw_readl(gpio_base + (Port[port]+0x1C)) &~(0x1<<num), gpio_base + (Port[port]+0x1C));
+
+	gpiochip_disable_irq(gc, hwirq);
+	LEAVE();
+}
+
+static void nuc980_irq_gpio_ack(struct irq_data *d)
+{
+	ENTRY();
+	// printk("nuc980_irq_gpio_ack %d\n", irqd_to_hwirq(d));
+	
+	LEAVE();
+}
+
+static void nuc980_irq_gpio_unmask(struct irq_data *d)
+{
+	struct gpio_chip *gc = irq_data_get_irq_chip_data(d);
+	irq_hw_number_t hwirq = irqd_to_hwirq(d);
+
+	unsigned int port,num,tmp;
+	ENTRY();
+	port =(hwirq)/GPIO_OFFSET;
+	num  =(hwirq)%GPIO_OFFSET;
+	tmp = gpio_type[port] & (0x1<<(num));
+	__raw_writel(__raw_readl(gpio_base + (Port[port]+0x18)) | tmp, gpio_base + (Port[port]+0x18));
+	tmp = gpio_inten[port] & (0x1<<(num+16));
+	__raw_writel(__raw_readl(gpio_base + (Port[port]+0x1C))|tmp, gpio_base + (Port[port]+0x1C));
+	tmp = gpio_inten[port] & (0x1<<num);
+	__raw_writel(__raw_readl(gpio_base + (Port[port]+0x1C))|tmp, gpio_base + (Port[port]+0x1C));
+
+	gpiochip_enable_irq(gc, hwirq);
+	LEAVE();
+}
+
+static int nuc980_irq_gpio_type(struct irq_data *d, unsigned int type)
+{
+	irq_hw_number_t hwirq = irqd_to_hwirq(d);
+
+	unsigned int port, num;
+	ENTRY();
+	port = (hwirq) / GPIO_OFFSET;
+	num = (hwirq) % GPIO_OFFSET;
+
+	if (type == IRQ_TYPE_PROBE) {
+		__raw_writel(__raw_readl
+		             (gpio_base + (Port[port] + 0x18)) & ~(0x1 << num),
+		             gpio_base + (Port[port] + 0x18));
+		__raw_writel(__raw_readl
+		             (gpio_base + (Port[port] + 0x1C)) | (0x1 << num) | ((0x1<<num)<<16),
+		             gpio_base + (Port[port] + 0x1C));
+		gpio_type[port] &= ~(0x1<<num);
+		gpio_inten[port] |= (0x1<<num);
+		gpio_inten[port] |= (0x1<<(num+16));
+		return 0;
+	}
+	if (type & IRQ_TYPE_LEVEL_MASK) {
+		__raw_writel(__raw_readl
+		             (gpio_base + (Port[port] + 0x18)) | (0x1 << num),
+		             gpio_base + (Port[port] + 0x18));
+		__raw_writel(__raw_readl
+		             (gpio_base + (Port[port] + 0x1C)) & ~((0x1 << num)|((0x1<<num)<<16)),
+		             gpio_base + (Port[port] + 0x1C));
+		gpio_type[port] |= (0x1<<num);
+		gpio_inten[port] &= ~(0x1<<num);
+		gpio_inten[port] &= ~(0x1<<(num+16));
+		if (type == IRQ_TYPE_LEVEL_HIGH) {
+			__raw_writel(__raw_readl
+			             (gpio_base + (Port[port] + 0x1C)) | ((0x1 <<  num)<<16),
+			             gpio_base + (Port[port] + 0x1C));
+			gpio_inten[port] |=(0x1<<(num+16));
+			return 0;
+		}
+		if (type == IRQ_TYPE_LEVEL_LOW) {
+			__raw_writel(__raw_readl(gpio_base + (Port[port] + 0x1C)) | (0x1 << num),
+			             gpio_base + (Port[port] + 0x1C));
+			gpio_inten[port] |= (0x1<<num);
+			return 0;
+		}
+	} else {
+		__raw_writel(__raw_readl
+		             (gpio_base + (Port[port] + 0x18)) & ~(0x1 << num),
+		             gpio_base + (Port[port] + 0x18));
+		gpio_type[port] &= ~(0x1<<num);
+		if (type & IRQ_TYPE_EDGE_RISING) {
+			__raw_writel(__raw_readl
+			             (gpio_base + (Port[port] + 0x1C)) | ((0x1 << num)<<16),
+			             gpio_base + (Port[port] + 0x1C));
+			gpio_inten[port] |= (0x1<<(num+16));
+		} else {
+			__raw_writel(__raw_readl
+			             (gpio_base + (Port[port] + 0x1C)) & ~((0x1 << num)<<16),
+			             gpio_base + (Port[port] + 0x1C));
+			gpio_inten[port] &= ~(0x1<<(num+16));
+		}
+		if (type & IRQ_TYPE_EDGE_FALLING) {
+			__raw_writel(__raw_readl
+			             (gpio_base + (Port[port] + 0x1C)) | (0x1 << num),
+			             gpio_base + (Port[port] + 0x1C));
+			gpio_inten[port] |= (0x1<<num);
+		} else {
+			__raw_writel(__raw_readl
+			             (gpio_base + (Port[port] + 0x1C)) & ~(0x1 << num),
+			             gpio_base + (Port[port] + 0x1C));
+			gpio_inten[port] &= ~(0x1<<num);
+		}
+	}
+	return 0;
+}
+
+static irqreturn_t gpio_parent_handler(int irq, void *data)
+{
+	struct gpio_chip *chip = (struct gpio_chip*)data;
+	struct irq_desc *desc = irq_to_desc(irq);
+	irq_hw_number_t hwirq = desc->irq_data.hwirq;
+	ENTRY();
+	
+	// Resolve the register base address to use
+	int int_src_base = 0;
+	int port = -1;
+	switch (hwirq)
+	{
+		case IRQ_GPA:
+			int_src_base = REG_GPIOA_INTSRC;
+			port = 0;
+			break;
+
+		case IRQ_GPB:
+			int_src_base = REG_GPIOB_INTSRC;
+			port = 1;
+			break;
+		
+		case IRQ_GPC:
+			int_src_base = REG_GPIOC_INTSRC;
+			port = 2;
+			break;
+
+		case IRQ_GPD:
+			int_src_base = REG_GPIOD_INTSRC;
+			port = 3;
+			break;
+
+		case IRQ_GPE:
+			int_src_base = REG_GPIOE_INTSRC;
+			port = 4;
+			break;
+
+		case IRQ_GPF:
+			int_src_base = REG_GPIOF_INTSRC;
+			port = 5;
+			break;
+
+		case IRQ_GPG:
+			int_src_base = REG_GPIOG_INTSRC;
+			port = 6;
+			break;
+		
+		default:
+			break;
+	}
+	BUG_ON(!int_src_base || port == -1);
+
+	unsigned int j, isr;
+	unsigned int flag=0;
+	isr = __raw_readl(gpio_base + int_src_base);
+	__raw_writel(isr, gpio_base + int_src_base);
+	for (j = 0; j < 16; j++) {
+		if (isr  & 0x1) {
+			flag = 1;
+			generic_handle_irq(irq_find_mapping(chip->irq.domain, port * 0x20 + j));
+		}
+		isr = isr >> 1;
+	}
+	LEAVE();
+
+	return IRQ_HANDLED;
+}
+
+static const struct irq_chip nuc980_irq_gpio = {
+	.name = "GPIO-IRQ",
+	.irq_ack = nuc980_irq_gpio_ack,
+	.irq_mask = nuc980_irq_gpio_mask,
+	.irq_unmask = nuc980_irq_gpio_unmask,
+	.irq_set_type = nuc980_irq_gpio_type,
+	.flags = IRQCHIP_IMMUTABLE,
+	GPIOCHIP_IRQ_RESOURCE_HELPERS
 };
 
 static irqreturn_t nuc980_eint0_interrupt(int irq, void *dev_id)
@@ -645,7 +800,7 @@ static int nuc980_gpio_of_xlate(struct gpio_chip *gc,
                              const struct of_phandle_args *gpiospec,
                              u32 *flags)
 {
-    if (gpiospec->args[0] > IRQ_GPIO_END)
+    if (gpiospec->args[0] > 0x20 * 7)
         return -EINVAL;
 
     if (flags){
@@ -690,25 +845,38 @@ static int nuc980_gpio_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	struct irq_domain *domain = irq_domain_add_legacy(np, IRQ_GPIO_END - IRQ_GPIO_START, IRQ_GPIO_START, 0, &irq_domain_simple_ops, NULL);
-	if (!domain) {
-		dev_err(&pdev->dev, "Failed to add irq legacy domain\n");
-		return -ENOENT;
+	// Map all hw gpio irqs to local interrupt handler
+	int tmpMapping[] = {IRQ_GPA, IRQ_GPB, IRQ_GPC, IRQ_GPD, IRQ_GPE, IRQ_GPF, IRQ_GPG};
+	for(int i = 0;i < 7;i++) {
+		int ret = devm_request_threaded_irq(&pdev->dev, irq_create_mapping(NULL, tmpMapping[i]), NULL, gpio_parent_handler,
+										IRQF_ONESHOT, "gpio-handler", &nuc980_gpio);
+		if (ret < 0)
+			return ret;
 	}
+
+	struct gpio_irq_chip *gpioirqchip = &nuc980_gpio.irq;
+	gpio_irq_chip_set_chip(gpioirqchip, &nuc980_irq_gpio);
+	gpioirqchip->parent_handler = NULL;
+	gpioirqchip->num_parents = 0;
+	gpioirqchip->parents = NULL;
+	gpioirqchip->default_type = IRQ_TYPE_NONE;
+	gpioirqchip->handler = handle_edge_irq;// Support both level and edge interrupts
 	
 	nuc980_gpio.of_xlate = nuc980_gpio_of_xlate;
 	nuc980_gpio.of_gpio_n_cells = 2;
 	nuc980_gpio.parent = &pdev->dev;
-	err = gpiochip_add(&nuc980_gpio);
+	devm_gpiochip_add_data(&pdev->dev, &nuc980_gpio, NULL);
 	if (err < 0) {
 		goto err_nuc980_gpio_port;
 	}
-#ifdef CONFIG_GPIO_NUC980_EINT_WKUP
-	nuc980_enable_eint(1,pdev);
-#else
-	nuc980_enable_eint(0,pdev);
-#endif
 
+	// TODO: Finish setting up external interrupts...
+#ifdef CONFIG_GPIO_NUC980_EINT_WKUP
+	nuc980_enable_eint(1, pdev);
+#else
+	nuc980_enable_eint(0, pdev);
+#endif
+	
 	return 0;
 
 err_nuc980_gpio_port:
@@ -733,7 +901,6 @@ static int nuc980_gpio_remove(struct platform_device *pdev)
     }
 
 	clk_disable(clk);
-    gpiochip_remove(&nuc980_gpio);
 
 	return 0;
 }

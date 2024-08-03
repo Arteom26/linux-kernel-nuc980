@@ -50,4 +50,6 @@ extern void nuc980_add_clocks(void);
 extern void nuc980_init_clocks(void);
 extern void nuc980_platform_init(struct platform_device **device, int size);
 
+void nuc980_restart(enum reboot_mode mode, const char *cmd);
+
 #endif //__CPU_H__
