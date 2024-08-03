@@ -20,66 +20,6 @@
 #include "cpu.h"
 #include "pm.h"
 
-/* Initial IO mappings */
-static struct map_desc nuc980_iodesc[] __initdata = {
-	IODESC_ENT(IRQ),
-	IODESC_ENT(GCR_CLK),
-	IODESC_ENT(SDIC),
-	IODESC_ENT(EBI),
-	IODESC_ENT(GPIO),
-	IODESC_ENT(EMAC0),
-	IODESC_ENT(EMAC1),
-	IODESC_ENT(PDMA0),
-	IODESC_ENT(PDMA1),
-	IODESC_ENT(EHCI),
-	IODESC_ENT(OHCI),
-	IODESC_ENT(USBDEV),
-	IODESC_ENT(I2S),
-	IODESC_ENT(SDH),
-	IODESC_ENT(FMI),
-	IODESC_ENT(CCAP0),
-	IODESC_ENT(CCAP1),
-	IODESC_ENT(CRYPTO),
-	IODESC_ENT(WDT_WWDT),
-	IODESC_ENT(RTC),
-	IODESC_ENT(SC0),
-	IODESC_ENT(SC1),
-	IODESC_ENT(I2C0),
-	IODESC_ENT(I2C1),
-	IODESC_ENT(I2C2),
-	IODESC_ENT(I2C3),
-	IODESC_ENT(UART0),
-	IODESC_ENT(UART1),
-	IODESC_ENT(UART2),
-	IODESC_ENT(UART3),
-	IODESC_ENT(UART4),
-	IODESC_ENT(UART5),
-	IODESC_ENT(UART6),
-	IODESC_ENT(UART7),
-	IODESC_ENT(UART8),
-	IODESC_ENT(UART9),
-	IODESC_ENT(SPI0),
-	IODESC_ENT(SPI1),
-	IODESC_ENT(SPI2),
-	IODESC_ENT(TIMER01),
-	IODESC_ENT(TIMER23),
-	IODESC_ENT(TIMER45),
-	IODESC_ENT(PWM0),
-	IODESC_ENT(PWM1),
-	IODESC_ENT(ADC),
-	IODESC_ENT(CAN0),
-	IODESC_ENT(CAN1),
-	IODESC_ENT(CAN2),
-	IODESC_ENT(CAN3),
-	IODESC_ENT(SRAM),
-};
-extern void nuc980_restart(enum reboot_mode mode, const char *cmd);
-
-static void __init nuc980_map_io(void)
-{
-	iotable_init(nuc980_iodesc, ARRAY_SIZE(nuc980_iodesc));
-}
-
 static void __init nuc980_init_late(void)
 {
 	nuc980_init_suspend();
@@ -102,9 +42,7 @@ DT_MACHINE_START(NUC980_DT, "Nuvoton NUC980 Board")
 	.atag_offset	= 0x100,
 	.init_machine 	= nuc980_dt_device_init,
 	.dt_compat		= nuc980_dt_board_compat,
-#ifndef CONFIG_GPIO_NUC980
-	.nr_irqs		= 64,
-#else
-	.nr_irqs		= 481,
-#endif
+	.nr_irqs 		= 64,
+	.restart		= nuc980_restart,
+	.init_late		= nuc980_init_late
 MACHINE_END
