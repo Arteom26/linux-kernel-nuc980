@@ -19,12 +19,6 @@
 #include <linux/err.h>
 #include <linux/interrupt.h>
 #include <linux/clk.h>
-
-// #include "include/mach/regs-clock.h"
-// #include "include/mach/regs-aic.h"
-// #include "include/mach/regs-gcr.h"
-// #include "include/mach/map.h"
-
 #include "pm.h"
 
 #ifdef CONFIG_PM_SLEEP

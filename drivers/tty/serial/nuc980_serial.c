@@ -35,31 +35,122 @@
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/serial.h>
-#include <linux/of_address.h>\
+#include <linux/of_address.h>
 
 #include <linux/platform_data/dma-nuc980.h>
 #include <linux/pinctrl/consumer.h>
-
-
-#include "nuc980_serial.h"
 
 //#define USING_SRAM
 #define UART_NR 10
 #define UART_RX_BUF_SIZE 128 //bytes
 #define UART_TX_MAX_BUF_SIZE 128 //bytes
 
-//#define CONFIG_USE_DDR 1
-
 // PDMA mode time-out
 #define Time_Out_Frame_Count 2
 #define Time_Out_Low_Baudrate 115200
 
+#if 0
+#define ENTRY()                 printk("[%-20s] : Enter...\n", __FUNCTION__)
+#define LEAVE()                 printk("[%-20s] : Leave...\n", __FUNCTION__)
+#else
+#define ENTRY() {}
+#define LEAVE()	{}
+#endif
+
+#define UART_REG_RBR	0x00
+#define UART_REG_THR	0x00
+
+#define UART_REG_IER	0x04
+#define RDA_IEN		0x00000001
+#define THRE_IEN	0x00000002
+#define RLS_IEN		0x00000004
+#define RTO_IEN		0x00000010
+#define BUFERR_IEN	0x00000020
+#define TIME_OUT_EN	0x00000800
+#define TXPDMAEN	0x00004000
+#define RXPDMAEN	0x00008000
+
+#define UART_REG_FCR	0x08
+#define RFR		0x00000002
+#define TFR		0x00000004
+
+#define UART_REG_LCR	0x0C
+#define	NSB		0x00000004
+#define PBE		0x00000008
+#define EPE		0x00000010
+#define SPE		0x00000020
+#define BCB		0x00000040
+
+#define UART_REG_MCR	0x10
+#define UART_REG_MSR	0x14
+
+#define UART_REG_FSR	0x18
+#define RX_OVER_IF	0x00000001
+#define TX_OVER_IF	0x01000000
+#define PEF		0x00000010
+#define FEF		0x00000020
+#define BIF		0x00000040
+#define RX_EMPTY	0x00004000
+#define TX_EMPTY	0x00400000
+#define TX_FULL		0x00800000
+#define RX_FULL		0x00008000
+#define TE_FLAG		0x10000000
+
+#define UART_REG_ISR	0x1C
+#define RDA_IF		0x00000001
+#define THRE_IF		0x00000002
+#define TOUT_IF		0x00000010
+#define THRE_INT	0x00000200
+#define HWRLS_IF	0x00040000
+#define HWBUFE_IF	0x00200000
+
+#define UART_REG_TOR	0x20
+#define UART_REG_BAUD	0x24
+
+#define UART_REG_IRCR	0x28
+
+#define UART_REG_ALT_CSR	0x2C
+
+#define UART_FUN_SEL	0x30
+#define FUN_SEL_UART	0x00000000
+#define FUN_SEL_LIN		0x00000001
+#define FUN_SEL_IrDA	0x00000002
+#define FUN_SEL_RS485	0x00000003
+#define FUN_SEL_Msk		0x00000007
+
+#define UART_REG_WKCTL	0x40
+#define UART_REG_WKSTS	0x44
+
+/*---------------------------------------------------------------------------------------------------------*/
+/*  Peripheral Transfer Mode Constant Definitions                                                          */
+/*---------------------------------------------------------------------------------------------------------*/
+#define PDMA_UART0_TX     4UL
+#define PDMA_UART0_RX     5UL
+#define PDMA_UART1_TX     6UL
+#define PDMA_UART1_RX     7UL
+#define PDMA_UART2_TX     8UL
+#define PDMA_UART2_RX     9UL
+#define PDMA_UART3_TX    10UL
+#define PDMA_UART3_RX    11UL
+#define PDMA_UART4_TX    12UL
+#define PDMA_UART4_RX    13UL
+#define PDMA_UART5_TX    14UL
+#define PDMA_UART5_RX    15UL
+#define PDMA_UART6_TX    16UL
+#define PDMA_UART6_RX    17UL
+#define PDMA_UART7_TX    18UL
+#define PDMA_UART7_RX    19UL
+#define PDMA_UART8_TX     26UL
+#define PDMA_UART8_RX     27UL
+#define PDMA_UART9_TX     28UL
+#define PDMA_UART9_RX     29UL
 
 static struct uart_driver nuc980serial_reg;
 
 struct uart_nuc980_port {
 	struct uart_port    port;
 	struct clk 			*uart_clk;
+	phys_addr_t			phys_base_addr;
 
 	unsigned short      capabilities;   /* port capabilities */
 	unsigned char       ier;
@@ -110,21 +201,22 @@ static void nuc980_prepare_TX_dma(struct uart_nuc980_port *p);
 
 static inline struct uart_nuc980_port *to_nuc980_uart_port(struct uart_port *uart)
 {
-	return container_of(uart, struct uart_nuc980_port, port);
+	return container_of(uart, struct uart_nuc980_port, port);    
 }
 
 static inline unsigned int serial_in(struct uart_nuc980_port *p, int offset)
 {
-	return(__raw_readl(p->port.membase + offset));
+	return(__raw_readl((void*)p->port.membase + offset));    
 }
 
 static inline void serial_out(struct uart_nuc980_port *p, int offset, int value)
 {
-	iowrite32(value, p->port.membase + offset);
+	__raw_writel(value, (void*)p->port.membase + offset);    
 }
 
 static void nuc980_Rx_dma_callback(void *arg)
 {
+    ENTRY();
 	struct nuc980_dma_done *done = arg;
 	struct uart_nuc980_port *p = (struct uart_nuc980_port *)done->callback_param;
 	struct tty_port    *tty_port = &p->port.state->port;
@@ -159,11 +251,13 @@ static void nuc980_Rx_dma_callback(void *arg)
 		serial_out(p, UART_REG_IER, (serial_in(p, UART_REG_IER)|RXPDMAEN));
 	}
 
-	return;
+	return;    
+    LEAVE();
 }
 
 static void nuc980_Tx_dma_callback(void *arg)
 {
+    ENTRY();
 	struct nuc980_dma_done *done = arg;
 	struct uart_nuc980_port *p = (struct uart_nuc980_port *)done->callback_param;
 	struct tty_port *tport = &p->port.state->port;
@@ -184,11 +278,13 @@ static void nuc980_Tx_dma_callback(void *arg)
 		p->Tx_pdma_busy_flag = 0;
 	}
 
-	spin_unlock(&p->port.lock);
+	spin_unlock(&p->port.lock);    
+    LEAVE();
 }
 
 static void set_pdma_flag(struct uart_nuc980_port *p, int id)
 {
+    ENTRY();
 	p->uart_pdma_enable_flag = 1;
 	p->pdma_baud_rate_set_flag = 0;
 
@@ -243,11 +339,13 @@ static void set_pdma_flag(struct uart_nuc980_port *p, int id)
 			p->uart_pdma_enable_flag = 0;
 			p->pdma_baud_rate_set_flag = 0;	
 			break;
-	};
+	};    
+    LEAVE();
 }
 
 static void nuc980_uart_cal_pdma_time_out(struct uart_nuc980_port *p, unsigned int baud)
 {
+    ENTRY();
 	unsigned int lcr;
 	unsigned int pdma_time_out_base = 300000000 * Time_Out_Frame_Count / 256; // 300M*Time_Out_Frame_Count/256
 	unsigned int time_out_prescaler = 0;
@@ -303,11 +401,13 @@ static void nuc980_uart_cal_pdma_time_out(struct uart_nuc980_port *p, unsigned i
 	p->pdma_time_out_count = time_out;
 	p->pdma_time_out_prescaler = time_out_prescaler;
 
-	return;
+	return;    
+    LEAVE();
 }
 
 static void nuc980_prepare_RX_dma(struct uart_nuc980_port *p)
 {
+    ENTRY();
 	struct nuc980_dma_config dma_crx;
 	struct nuc980_ip_rx_dma *pdma_rx = &(p->dma_rx);
 	dma_cookie_t cookie;
@@ -322,9 +422,9 @@ static void nuc980_prepare_RX_dma(struct uart_nuc980_port *p)
 		p->dest_mem_p.size = UART_RX_BUF_SIZE*2;
 		p->dest_mem_p.vir_addr = (unsigned int)kmalloc((UART_RX_BUF_SIZE * 2), GFP_KERNEL);
 		p->dest_mem_p.phy_addr = dma_map_single(pdma_rx->chan_rx->device->dev, (void *)p->dest_mem_p.vir_addr, (UART_RX_BUF_SIZE * 2), DMA_FROM_DEVICE);
-                ret = dma_mapping_error(pdma_rx->chan_rx->device->dev, p->dest_mem_p.phy_addr);
-                if (ret)
-                        dev_err(p->port.dev, "dest mapping error.\n");
+		ret = dma_mapping_error(pdma_rx->chan_rx->device->dev, p->dest_mem_p.phy_addr);
+		if (ret)
+			dev_err(p->port.dev, "dest mapping error.\n");
 
 #else
 		p->dest_mem_p.size = 256; //set to 256 bytes
@@ -332,7 +432,7 @@ static void nuc980_prepare_RX_dma(struct uart_nuc980_port *p)
 #endif
 	}
 
-	pdma_rx->slave_config.src_addr = (unsigned int)(p->port.membase - 0x40000000);
+	pdma_rx->slave_config.src_addr = p->phys_base_addr + UART_REG_RBR;
 	pdma_rx->slave_config.src_addr_width = DMA_SLAVE_BUSWIDTH_1_BYTE;
 	pdma_rx->slave_config.src_maxburst = 1;
 	pdma_rx->slave_config.direction = DMA_DEV_TO_MEM;
@@ -369,11 +469,13 @@ static void nuc980_prepare_RX_dma(struct uart_nuc980_port *p)
 		printk("rx dma_submit_error  \n");
 		while(1);
 	}
-
+    
+    LEAVE();
 }
 
 static void nuc980_prepare_TX_dma(struct uart_nuc980_port *p)
 {
+    ENTRY();
 	struct nuc980_dma_config dma_ctx;
 	struct nuc980_ip_tx_dma *pdma_tx = &(p->dma_tx);
 	dma_cookie_t cookie;
@@ -384,9 +486,9 @@ static void nuc980_prepare_TX_dma(struct uart_nuc980_port *p)
 		p->src_mem_p.size = UART_XMIT_SIZE;
 		p->src_mem_p.vir_addr = (unsigned int)kmalloc(p->src_mem_p.size, GFP_KERNEL);
 		p->src_mem_p.phy_addr = dma_map_single(pdma_tx->chan_tx->device->dev, (void *)p->src_mem_p.vir_addr, p->src_mem_p.size, DMA_TO_DEVICE);
-                ret = dma_mapping_error(pdma_tx->chan_tx->device->dev, p->src_mem_p.phy_addr);
-                if (ret)
-                        dev_err(p->port.dev, "src mapping error.\n");
+		ret = dma_mapping_error(pdma_tx->chan_tx->device->dev, p->src_mem_p.phy_addr);
+		if (ret)
+			dev_err(p->port.dev, "src mapping error.\n");
 	}
 
 	p->tx_dma_len = kfifo_len(&tport->xmit_fifo);
@@ -395,13 +497,13 @@ static void nuc980_prepare_TX_dma(struct uart_nuc980_port *p)
 		dev_err(p->port.dev, "unable to get data from fifo\n");
 
 	serial_out(p, UART_REG_IER, (serial_in(p, UART_REG_IER) &~ TXPDMAEN));
-	pdma_tx->slave_config.dst_addr = (unsigned int)(p->port.membase - 0x40000000);
+	pdma_tx->slave_config.dst_addr = p->phys_base_addr + UART_REG_THR;
 	pdma_tx->slave_config.dst_addr_width =  DMA_SLAVE_BUSWIDTH_1_BYTE;
 	pdma_tx->slave_config.dst_maxburst = 1;
 	pdma_tx->slave_config.direction = DMA_MEM_TO_DEV;
-	dmaengine_slave_config(pdma_tx->chan_tx,&(pdma_tx->slave_config));
+	dmaengine_slave_config(pdma_tx->chan_tx, &(pdma_tx->slave_config));
 	sg_init_table(pdma_tx->sgtx, 1);
-	pdma_tx->sgtx[0].dma_address =p->src_mem_p.phy_addr;
+	pdma_tx->sgtx[0].dma_address = p->src_mem_p.phy_addr;
 	pdma_tx->sgtx[0].length = p->tx_dma_len;
 	dma_ctx.reqsel = p->PDMA_UARTx_TX;
 	// disable time-out
@@ -427,11 +529,13 @@ static void nuc980_prepare_TX_dma(struct uart_nuc980_port *p)
 	if (dma_submit_error(cookie)) {
 		printk("dma_submit_error\n");
 		while(1);
-	}
+	}    
+    LEAVE();
 }
 
 static void rs485_start_rx(struct uart_nuc980_port *port)
 {
+    ENTRY();
 #if 0  // user can enable to control RTS pin level
 	// when enable this define, user need disable auto-flow control
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
@@ -443,11 +547,13 @@ static void rs485_start_rx(struct uart_nuc980_port *port)
 		// Set logical level for RTS pin equal to low
 		serial_out(port, UART_REG_MCR, (serial_in(port, UART_REG_MCR) | 0x200) );
 	}
-#endif
+#endif    
+    LEAVE();
 }
 
 static void rs485_stop_rx(struct uart_nuc980_port *port)
 {
+    ENTRY();
 #if 0  // user can enable to control RTS pin level
 	// when enable this define, user need disable auto-flow control
 	if(port->rs485.flags & SER_RS485_RTS_ON_SEND) {
@@ -458,11 +564,13 @@ static void rs485_stop_rx(struct uart_nuc980_port *port)
 		serial_out(port, UART_REG_MCR, (serial_in(port, UART_REG_MCR) | 0x200) );
 	}
 #endif
-
+    
+    LEAVE();
 }
 
 static inline void __stop_tx(struct uart_nuc980_port *p)
 {
+    ENTRY();
 	unsigned int ier;
 
 	if ((ier = serial_in(p, UART_REG_IER)) & THRE_IEN) {
@@ -470,11 +578,13 @@ static inline void __stop_tx(struct uart_nuc980_port *p)
 	}
 	if (p->rs485.flags & SER_RS485_ENABLED)
 		rs485_start_rx(p);
-
+    
+    LEAVE();
 }
 
 static void nuc980serial_stop_tx(struct uart_port *port)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
 
 	__stop_tx(up);
@@ -484,6 +594,7 @@ static void transmit_chars(struct uart_nuc980_port *up);
 
 static void nuc980serial_start_tx(struct uart_port *port)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
 	unsigned int ier;
 	struct tty_port *tport = &port->state->port;
@@ -503,7 +614,7 @@ static void nuc980serial_start_tx(struct uart_port *port)
 
 		up->Tx_pdma_busy_flag = 1;
 		nuc980_prepare_TX_dma(up);
-		serial_out(up, UART_REG_IER, (serial_in(up, UART_REG_IER)|TXPDMAEN));
+		serial_out(up, UART_REG_IER, (serial_in(up, UART_REG_IER) | TXPDMAEN));
 	} else {
 		ier = serial_in(up, UART_REG_IER);
 		serial_out(up, UART_REG_IER, ier & ~THRE_IEN);
@@ -515,6 +626,7 @@ static void nuc980serial_start_tx(struct uart_port *port)
 
 static void nuc980serial_stop_rx(struct uart_port *port)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
 
 	serial_out(up, UART_REG_IER, serial_in(up, UART_REG_IER) & ~RDA_IEN);
@@ -524,6 +636,7 @@ static void nuc980serial_enable_ms(struct uart_port *port) { }
 
 static void receive_chars(struct uart_nuc980_port *up)
 {
+    ENTRY();
 	unsigned char ch;
 	unsigned int fsr;
 	unsigned int isr;
@@ -604,6 +717,7 @@ tout_end:
 
 static void transmit_chars(struct uart_nuc980_port *up)
 {
+    ENTRY();
 	struct tty_port *tport = &up->port.state->port;
 	//int count = 12;
 	int count = 16 -((serial_in(up, UART_REG_FSR)>>16)&0xF);
@@ -652,6 +766,7 @@ static void transmit_chars(struct uart_nuc980_port *up)
 
 static unsigned int check_modem_status(struct uart_nuc980_port *up)
 {
+    ENTRY();
 	unsigned int status = 0;
 
 	if (0) {
@@ -663,6 +778,7 @@ static unsigned int check_modem_status(struct uart_nuc980_port *up)
 
 static irqreturn_t nuc980serial_interrupt(int irq, void *dev_id)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)dev_id;
 	unsigned int isr, fsr;
 
@@ -695,6 +811,7 @@ static irqreturn_t nuc980serial_interrupt(int irq, void *dev_id)
 
 static unsigned int nuc980serial_tx_empty(struct uart_port *port)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
 	//unsigned long flags;
 	unsigned int fsr;
@@ -708,6 +825,7 @@ static unsigned int nuc980serial_tx_empty(struct uart_port *port)
 
 static unsigned int nuc980serial_get_mctrl(struct uart_port *port)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
 	unsigned int status;
 	unsigned int ret = 0;
@@ -722,6 +840,7 @@ static unsigned int nuc980serial_get_mctrl(struct uart_port *port)
 
 static void nuc980serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
 	unsigned int mcr = 0;
 	unsigned int ier = 0;
@@ -762,6 +881,7 @@ static void nuc980serial_set_mctrl(struct uart_port *port, unsigned int mctrl)
 
 static void nuc980serial_break_ctl(struct uart_port *port, int break_state)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
 	unsigned long flags;
 	unsigned int lcr;
@@ -778,11 +898,17 @@ static void nuc980serial_break_ctl(struct uart_port *port, int break_state)
 
 static int nuc980serial_startup(struct uart_port *port)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
 	struct tty_struct *tty = port->state->port.tty;
 	int retval;
 	struct nuc980_ip_rx_dma *pdma_rx = &(up->dma_rx);
 	struct nuc980_ip_tx_dma *pdma_tx = &(up->dma_tx);
+
+	retval = clk_prepare_enable(up->uart_clk);
+	if (retval) {
+		pr_err("could not enable clk\n");
+	}
 
 	dma_cap_mask_t mask;
 
@@ -831,17 +957,17 @@ static int nuc980serial_startup(struct uart_port *port)
 		serial_out(up, UART_REG_IER, RLS_IEN | BUFERR_IEN);
 	else
 		serial_out(up, UART_REG_IER, RTO_IEN | RDA_IEN | TIME_OUT_EN | BUFERR_IEN);
-	//serial_out(up, UART_REG_IER, RTO_IEN | RDA_IEN | TIME_OUT_EN);
 
 	if(up->uart_pdma_enable_flag == 1) {
 		up->baud_rate = 0;
 	}
-
+	
 	return 0;
 }
 
 static void nuc980serial_shutdown(struct uart_port *port)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
 	struct nuc980_ip_rx_dma *pdma_rx = &(up->dma_rx);
 	struct nuc980_ip_tx_dma *pdma_tx = &(up->dma_tx);
@@ -883,6 +1009,7 @@ static void nuc980serial_shutdown(struct uart_port *port)
 
 static unsigned int nuc980serial_get_divisor(struct uart_port *port, unsigned int baud)
 {
+    ENTRY();
 	unsigned int quot;
 
 	quot = (port->uartclk / baud) - 2;
@@ -892,6 +1019,7 @@ static unsigned int nuc980serial_get_divisor(struct uart_port *port, unsigned in
 
 static void nuc980serial_set_termios(struct uart_port *port, struct ktermios *termios, const struct ktermios *old)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = (struct uart_nuc980_port *)port;
 	unsigned int lcr = 0;
 	unsigned long flags;
@@ -984,6 +1112,7 @@ static void nuc980serial_set_termios(struct uart_port *port, struct ktermios *te
 
 static void nuc980serial_pm(struct uart_port *port, unsigned int state, unsigned int oldstate)
 {
+    ENTRY();
 	struct uart_nuc980_port *p = (struct uart_nuc980_port *)port;
 
 	if (p->pm)
@@ -992,6 +1121,7 @@ static void nuc980serial_pm(struct uart_port *port, unsigned int state, unsigned
 
 static void nuc980serial_release_port(struct uart_port *port)
 {
+    ENTRY();
 	struct platform_device *pdev = to_platform_device(port->dev);
 	int size = pdev->resource[0].end - pdev->resource[0].start + 1;
 
@@ -1003,11 +1133,13 @@ static void nuc980serial_release_port(struct uart_port *port)
 
 static int nuc980serial_request_port(struct uart_port *port)
 {
+    ENTRY();
 	return 0;
 }
 
 static void nuc980serial_config_port(struct uart_port *port, int flags)
 {
+    ENTRY();
 	int ret;
 
 	/*
@@ -1022,6 +1154,7 @@ static void nuc980serial_config_port(struct uart_port *port, int flags)
 
 static int nuc980serial_verify_port(struct uart_port *port, struct serial_struct *ser)
 {
+    ENTRY();
 	if (ser->type != PORT_UNKNOWN && ser->type != PORT_NUC980)
 		return -EINVAL;
 	return 0;
@@ -1029,12 +1162,14 @@ static int nuc980serial_verify_port(struct uart_port *port, struct serial_struct
 
 static const char *nuc980serial_type(struct uart_port *port)
 {
+    ENTRY();
 	return (port->type == PORT_NUC980) ? "NUC980" : NULL;
 }
 
 /* Enable or disable the rs485 support */
 static int nuc980serial_config_rs485(struct uart_port *port, struct ktermios * term, struct serial_rs485 *rs485conf)
 {
+    ENTRY();
 	struct uart_nuc980_port *p = to_nuc980_uart_port(port);
 
 	p->rs485 = *rs485conf;
@@ -1064,6 +1199,7 @@ static int nuc980serial_config_rs485(struct uart_port *port, struct ktermios * t
 
 static int nuc980serial_ioctl(struct uart_port *port, unsigned int cmd, unsigned long arg)
 {
+    ENTRY();
 	switch (cmd) {
 
 	default:
@@ -1095,8 +1231,9 @@ static struct uart_ops nuc980serial_ops = {
 
 static void nuc980serial_init_ports(void)
 {
+    ENTRY();
 	static int first = 1;
-	int i, ret;
+	int i;
 
 	// UART0 multi-function  PF11,PF12
 	if (!first)
@@ -1112,15 +1249,11 @@ static void nuc980serial_init_ports(void)
 		if (IS_ERR(up->uart_clk))
 			pr_err("Couldn't get uart clock");
 
-		ret = clk_prepare_enable(up->uart_clk);
-		if (ret) {
-			pr_err("could not enable clk\n");
-		}
-
 		struct resource res;
 		if (of_address_to_resource(np, 0, &res)){
 			pr_err("Failed to get memory resource\n");
 		}
+		up->phys_base_addr = res.start;
 		up->port.membase = ioremap(res.start, resource_size(&res));
 		up->port.iobase = (unsigned int)up->port.membase;
 		if (IS_ERR(up->port.membase))
@@ -1130,7 +1263,7 @@ static void nuc980serial_init_ports(void)
 		spin_lock_init(&up->port.lock);
 
 		up->port.ops = &nuc980serial_ops;
-		up->port.uartclk = 12000000;
+		up->port.uartclk = clk_get_rate(up->uart_clk);
 		/* 12MHz reference clock input, 115200 */
 		serial_out(up, UART_REG_BAUD, 0x30000066);
 	}
@@ -1180,6 +1313,7 @@ static void nuc980serial_console_write(struct console *co, const char *s, unsign
 
 static int __init nuc980serial_console_setup(struct console *co, char *options)
 {
+    ENTRY();
 	struct uart_port *port;
 	int baud = 115200;
 	int bits = 8;
@@ -1225,6 +1359,7 @@ MODULE_DEVICE_TABLE(of, nuc980_serial_of_match);
 
 static int __init nuc980serial_console_init(void)
 {
+    ENTRY();
 	u32 i = 0;
 	struct device_node *np;
 
@@ -1266,6 +1401,7 @@ static struct uart_driver nuc980serial_reg = {
  */
 static int nuc980serial_probe(struct platform_device *pdev)
 {
+    ENTRY();
 	struct uart_nuc980_port *up;
 	int ret, i;
 
@@ -1305,6 +1441,7 @@ static int nuc980serial_probe(struct platform_device *pdev)
  */
 static int nuc980serial_remove(struct platform_device *dev)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = platform_get_drvdata(dev);
 	free_irq(up->port.irq, &up->port);
 
@@ -1315,6 +1452,7 @@ static int nuc980serial_remove(struct platform_device *dev)
 
 static int nuc980serial_suspend(struct platform_device *dev, pm_message_t state)
 {
+    ENTRY();
 	int wakeup_flag = 0;
 
 	struct uart_nuc980_port *up = platform_get_drvdata(dev);
@@ -1394,6 +1532,7 @@ static int nuc980serial_suspend(struct platform_device *dev, pm_message_t state)
 
 static int nuc980serial_resume(struct platform_device *dev)
 {
+    ENTRY();
 	struct uart_nuc980_port *up = platform_get_drvdata(dev);
 	serial_out(up, UART_REG_WKSTS, 0x1); // Clear CTS Wakeup status
 
@@ -1415,6 +1554,7 @@ static struct platform_driver nuc980serial_driver = {
 
 static int __init nuc980serial_init(void)
 {
+    ENTRY();
 	int ret;
 
 	ret = uart_register_driver(&nuc980serial_reg);
@@ -1430,6 +1570,7 @@ static int __init nuc980serial_init(void)
 
 static void __exit nuc980serial_exit(void)
 {
+    ENTRY();
 	platform_driver_unregister(&nuc980serial_driver);
 	uart_unregister_driver(&nuc980serial_reg);
 }
