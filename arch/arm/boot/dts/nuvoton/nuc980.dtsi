@@ -1615,7 +1615,8 @@
                 // This is a hack to prevent fb_s6d02a1.c:set_var() from issuing
 				// command 0x36 after the init sequence has been applied and thus
 				// changing the config.
-				rotate = <1>;
+				rotate = <0>;
+                txbuflen = <8192>;
 
                 debug = <0x10>; // print first update
             };
@@ -1862,6 +1863,7 @@
             interrupts = <29 4 1>;
             pinctrl-names = "default";
             pinctrl-0 = <&pinctrl_usbd>;
+            clocks = <&clk NUC980_CLK_USBD>;
             status = "okay";
         };
 
@@ -2081,7 +2083,8 @@
             };
         };
 
-        dma@b0008000 {
+        dma: dma@b0008000 {
+            #dma-cells = <1>;
             compatible = "nuvoton,nuc980-dma";
             reg = <0xb0008000 0x2000>;
             interrupts = <25 4 1>, <26 4 1>;

@@ -30,6 +30,12 @@ menu "USB Peripheral Controller"
 # Integrated controllers
 #
 
+config USB_NUC980
+	tristate "NUC980 USB Device Controller"
+	depends on ARCH_NUC980
+	help
+	  On-chip USB Device Controller of Nuvoton NUC980.
+
 config USB_AT91
 	tristate "Atmel AT91 USB Device Port"
 	depends on ARCH_AT91

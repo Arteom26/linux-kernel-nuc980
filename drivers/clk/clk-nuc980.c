@@ -77,6 +77,7 @@
 #define NUC980_CLK_S_GPIO_CLK		"gpio_clk"
 #define NUC980_CLK_S_SPI_MUX(tim_num)    	"spi" #tim_num "_clk_mux"
 #define NUC980_CLK_S_SPI_CLK(tim_num)    	"spi" #tim_num "_clk"
+#define NUC980_CLK_S_USBD_CLK		"usbd_clk"
 
 struct nuc980_clk_pll_data {
 	u32 reg;
@@ -368,6 +369,7 @@ static const struct nuc980_clk_gate_data nuc980_gates[] __initconst = {
 	{ CLK_HCLKEN, 11, NUC980_CLK_S_GPIO_CLK, NUC980_CLK_S_HCLK1, 0, 0, NUC980_CLK_GPIO },// GPIO clock gate
 	{ CLK_PCLKEN1, 5, NUC980_CLK_S_SPI_CLK(0), NUC980_CLK_S_SPI_MUX(0), 0, 0, NUC980_CLK_SPI0 },// SPI clock gates
 	{ CLK_PCLKEN1, 6, NUC980_CLK_S_SPI_CLK(1), NUC980_CLK_S_SPI_MUX(1), 0, 0, NUC980_CLK_SPI1 },
+	{ CLK_HCLKEN, 19, NUC980_CLK_S_USBD_CLK, NUC980_CLK_S_HCLK3, 0, 0, NUC980_CLK_USBD },// Usb device clock gate
 };
 
 static DEFINE_SPINLOCK(nuc980_clk_lock);

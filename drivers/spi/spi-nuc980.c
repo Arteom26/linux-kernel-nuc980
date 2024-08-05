@@ -799,9 +799,11 @@ static int nuc980_spi_probe(struct platform_device *pdev)
 	hw->bitbang.ctlr->setup    = nuc980_spi_setup;
 
 	// Initialize default pins
-	struct pinctrl *pins = devm_pinctrl_get(&pdev->dev);
-	struct pinctrl_state *state = pinctrl_lookup_state(pins, "default");
-	pinctrl_select_state(pins, state);
+	struct pinctrl *pins = devm_pinctrl_get_select_default(&pdev->dev);
+	if(!pins) {
+		dev_err(&pdev->dev, "No unable to get SPI pins\n");
+		goto err_pdata;
+	}
 
 	hw->res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (hw->res == NULL) {

@@ -910,6 +910,13 @@ static int nuc980serial_startup(struct uart_port *port)
 		pr_err("could not enable clk\n");
 	}
 
+	// Initialize default pins
+	struct pinctrl *pins = devm_pinctrl_get_select_default(port->dev);
+	if(!pins) {
+		dev_err(port->dev, "No unable to get SPI pins\n");
+		return -EFAULT;
+	}
+
 	dma_cap_mask_t mask;
 
 	dma_cap_zero(mask);
